@@ -88,14 +88,25 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
   const { user, logout } = useAuth();
   const location = useLocation();
+  const [isHovered, setIsHovered] = useState(false);
+
+  const isExpanded = !collapsed || isHovered;
 
   return (
-    <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
+    <aside 
+      className={`sidebar ${!isExpanded ? 'collapsed' : ''}`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      style={{
+        boxShadow: isHovered ? '4px 0 24px rgba(0, 0, 0, 0.4)' : 'none',
+        zIndex: 1100
+      }}
+    >
       <div className="sidebar-logo">
         <div className="sidebar-logo-icon">
           <Cross size={18} color="white" />
         </div>
-        {!collapsed && (
+        {isExpanded && (
           <div className="sidebar-logo-text">
             <span className="sidebar-logo-name">MediCore</span>
             <span className="sidebar-logo-sub">HMS Platform</span>
@@ -114,10 +125,10 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
                 className={({ isActive }) =>
                   `nav-item ${isActive || location.pathname.startsWith(item.path) ? 'active' : ''}`
                 }
-                title={collapsed ? item.label : undefined}
+                title={!isExpanded ? item.label : undefined}
               >
                 <item.icon size={16} className="nav-item-icon" />
-                {!collapsed && (
+                {isExpanded && (
                   <>
                     <span className="nav-item-text">{item.label}</span>
                     {item.badge && (
@@ -134,7 +145,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
       <div className="sidebar-bottom">
         <div className="sidebar-user" onClick={logout} title="Logout">
           <div className="sidebar-user-avatar">{user?.avatar}</div>
-          {!collapsed && (
+          {isExpanded && (
             <div className="sidebar-user-info">
               <div className="sidebar-user-name">{user?.name}</div>
               <div className="sidebar-user-role">{user?.role}</div>

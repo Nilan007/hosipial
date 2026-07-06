@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Users, Search, Download, Plus, Eye, Edit2, ShieldAlert,
-  Calendar, FileText, Activity, AlertCircle, Sparkles, CheckCircle
+  Calendar, FileText, Activity, AlertCircle, Sparkles, CheckCircle,
+  Clock, User, Stethoscope, QrCode, ClipboardList, Pill, FileCode, Heart, Printer
 } from 'lucide-react';
 import { api } from '../../utils/api';
 import { exportPatientPDF, exportTablePDF, exportToExcel } from '../../utils/exportUtils';
@@ -17,16 +18,15 @@ const SVGQRCode: React.FC<{ value: string; size?: number }> = ({ value, size = 6
       fgColor="#0f172a"
       level="M"
       style={{
-        borderRadius: '4px',
+        borderRadius: '8px',
         border: '1px solid #cbd5e1',
-        padding: '4px',
+        padding: '6px',
         background: '#ffffff',
         display: 'inline-block'
       }}
     />
   );
 };
-
 
 const Patients: React.FC = () => {
   const [patientList, setPatientList] = useState<any[]>([]);
@@ -36,6 +36,14 @@ const Patients: React.FC = () => {
   const [selectedPatient, setSelectedPatient] = useState<any>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [activeTab, setActiveTab] = useState('Overview');
+
+  // EMR details states
+  const [patientAppointments, setPatientAppointments] = useState<any[]>([]);
+  const [patientPrescriptions, setPatientPrescriptions] = useState<any[]>([]);
+  const [patientLabs, setPatientLabs] = useState<any[]>([]);
+  const [patientScans, setPatientScans] = useState<any[]>([]);
+  const [patientBills, setPatientBills] = useState<any[]>([]);
+  const [loadingDetails, setLoadingDetails] = useState(false);
 
   // Form states
   const [newName, setNewName] = useState('');
@@ -60,6 +68,31 @@ const Patients: React.FC = () => {
   useEffect(() => {
     loadPatients();
   }, []);
+
+  const handleViewDetails = async (patient: any) => {
+    setSelectedPatient(patient);
+    setShowDetailModal(true);
+    setActiveTab('Overview');
+    setLoadingDetails(true);
+    try {
+      const [apts, prescriptionsData, labsData, scansData, billsData] = await Promise.all([
+        api.getAppointments(),
+        api.getPrescriptions(),
+        api.getLabTests(),
+        api.getRadiologyScans(),
+        api.getBills()
+      ]);
+      setPatientAppointments(apts.filter((a: any) => a.patientId === patient.id));
+      setPatientPrescriptions(prescriptionsData.filter((p: any) => p.patientId === patient.id));
+      setPatientLabs(labsData.filter((l: any) => l.patientId === patient.id));
+      setPatientScans(scansData.filter((s: any) => s.patientId === patient.id));
+      setPatientBills(billsData.filter((b: any) => b.patientId === patient.id));
+    } catch (e) {
+      console.error('Error fetching patient EMR details:', e);
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,6 +167,52 @@ const Patients: React.FC = () => {
     const matchesStatus = filterStatus === 'All' || p.status === filterStatus;
     return matchesSearch && matchesStatus;
   });
+
+  // Construct chronological visit-wise history for selected patient details modal
+  const visitsMap: { [date: string]: any } = {};
+  if (selectedPatient) {
+    patientAppointments.forEach(apt => {
+      const d = apt.date;
+      if (!visitsMap[d]) {
+        visitsMap[d] = { date: d, doctors: new Set(), notes: [], type: 'Appointment', status: apt.status, token: apt.token };
+      }
+      if (apt.doctorName) visitsMap[d].doctors.add(apt.doctorName);
+      if (apt.notes) visitsMap[d].notes.push(`Consultation Reason: ${apt.notes}`);
+    });
+
+    patientPrescriptions.forEach(p => {
+      const d = p.date;
+      if (!visitsMap[d]) {
+        visitsMap[d] = { date: d, doctors: new Set(), notes: [], type: 'Prescription' };
+      }
+      if (p.doctorName) visitsMap[d].doctors.add(p.doctorName);
+      if (p.diagnosis) visitsMap[d].notes.push(`Diagnosis: ${p.diagnosis}`);
+      visitsMap[d].prescriptions = p.medicines || [];
+    });
+
+    patientLabs.forEach(l => {
+      const d = l.ordered ? l.ordered.split(' ')[0] : l.collected?.split(' ')[0];
+      if (d) {
+        if (!visitsMap[d]) {
+          visitsMap[d] = { date: d, doctors: new Set(), notes: [], type: 'Lab Investigation' };
+        }
+        if (!visitsMap[d].labs) visitsMap[d].labs = [];
+        visitsMap[d].labs.push(l);
+      }
+    });
+
+    patientScans.forEach(s => {
+      const d = s.date;
+      if (d) {
+        if (!visitsMap[d]) {
+          visitsMap[d] = { date: d, doctors: new Set(), notes: [], type: 'Radiology Scan' };
+        }
+        if (!visitsMap[d].scans) visitsMap[d].scans = [];
+        visitsMap[d].scans.push(s);
+      }
+    });
+  }
+  const sortedVisits = Object.values(visitsMap).sort((a: any, b: any) => b.date.localeCompare(a.date));
 
   return (
     <div className="page-content">
@@ -218,7 +297,7 @@ const Patients: React.FC = () => {
                   <td>{patient.lastVisit}</td>
                   <td style={{ textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                      <button className="btn btn-secondary btn-icon btn-sm" onClick={() => { setSelectedPatient(patient); setShowDetailModal(true); }} title="View EMR Detail">
+                      <button className="btn btn-secondary btn-icon btn-sm" onClick={() => handleViewDetails(patient)} title="View EMR Detail">
                         <Eye size={14} />
                       </button>
                       <button className="btn btn-secondary btn-icon btn-sm" onClick={() => exportPatientPDF(patient)} title="Download EMR PDF">
@@ -317,174 +396,301 @@ const Patients: React.FC = () => {
       {/* Patient Detail / EMR Viewer Modal */}
       {showDetailModal && selectedPatient && (
         <div className="modal-overlay">
-          <div className="modal modal-lg">
+          <div className="modal modal-xl" style={{ maxWidth: '1200px', width: '95%' }}>
             <div className="modal-header">
-              <h2 className="modal-title">Electronic Health Record (EMR) — {selectedPatient.name}</h2>
+              <h2 className="modal-title">Electronic Health Record (EMR) Ledger — {selectedPatient.name}</h2>
               <button className="btn-secondary" onClick={() => setShowDetailModal(false)}>✕</button>
             </div>
-            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {/* Patient Basic Card */}
-              <div className="card" style={{ display: 'flex', gap: 20, background: 'var(--color-bg-secondary)', border: '1px solid var(--color-primary-glow)', alignItems: 'center' }}>
-                <div className="avatar avatar-lg">{selectedPatient.name.split(' ').map((n: string) => n[0]).join('')}</div>
-                <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginLeft: 'auto', order: 2 }}>
-                  <div className="text-right">
-                    <span className="text-muted text-xs block">PATIENT QR FILE</span>
-                    <span className="text-secondary text-xs block">Scan or click to open</span>
-                  </div>
-                  <Link to={`/patient-record/${selectedPatient.id}`} target="_blank" className="qr-link" title="Open EMR Patient Portal" style={{ color: 'inherit', display: 'inline-block' }}>
-                    <SVGQRCode value={`${window.location.origin}/patient-record/${selectedPatient.id}`} size={56} />
-                  </Link>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, flex: 1 }}>
+            
+            <div className="modal-body" style={{ display: 'flex', gap: 24, padding: 24, minHeight: '520px', flexDirection: 'row', flexWrap: 'wrap' }}>
+              
+              {/* Left Column - Demographics and History Tabs (70% width) */}
+              <div style={{ flex: '1 1 700px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+                
+                {/* Patient Summary Strip */}
+                <div className="card" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 16, background: 'var(--color-bg-secondary)', border: '1px solid var(--color-primary-glow)', padding: '16px' }}>
                   <div>
                     <div className="text-muted text-xs">PATIENT MRN</div>
                     <div className="font-bold text-accent">{selectedPatient.id}</div>
                   </div>
                   <div>
                     <div className="text-muted text-xs">AGE & GENDER</div>
-                    <div className="font-semibold">{selectedPatient.age} Years / {selectedPatient.gender}</div>
+                    <div className="font-semibold text-white">{selectedPatient.age} Yrs / {selectedPatient.gender}</div>
                   </div>
                   <div>
                     <div className="text-muted text-xs">BLOOD GROUP</div>
-                    <div className="font-semibold text-primary">{selectedPatient.blood}</div>
+                    <div className="font-bold text-primary">{selectedPatient.blood}</div>
                   </div>
                   <div>
                     <div className="text-muted text-xs">INSURANCE</div>
-                    <div className="font-semibold">{selectedPatient.insurance || 'No Policy Listed'}</div>
+                    <div className="font-semibold text-white" style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{selectedPatient.insurance || 'Self Pay'}</div>
                   </div>
                 </div>
-              </div>
 
-              {/* Tabs */}
-              <div className="tabs">
-                {['Overview', 'Vitals', 'Clinical Notes', 'Prescriptions', 'Documents'].map(tab => (
-                  <button key={tab} className={`tab ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
-                    {tab}
-                  </button>
-                ))}
-              </div>
-
-              {/* Tab Content */}
-              {activeTab === 'Overview' && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                  <div className="card">
-                    <h3 className="card-title text-danger mb-sm" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <AlertCircle size={16} /> Allergies & Alerts
-                    </h3>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                      {selectedPatient.allergies?.length ? selectedPatient.allergies.map((a: string) => (
-                        <span key={a} className="badge badge-danger">{a}</span>
-                      )) : <span className="text-muted text-sm">No known food or drug allergies</span>}
-                    </div>
-                  </div>
-                  <div className="card">
-                    <h3 className="card-title text-warning mb-sm" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Activity size={16} /> Chronic Conditions
-                    </h3>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                      {selectedPatient.chronic?.length ? selectedPatient.chronic.map((c: string) => (
-                        <span key={c} className="badge badge-warning">{c}</span>
-                      )) : <span className="text-muted text-sm">No recorded chronic ailments</span>}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'Vitals' && (
-                <div className="card">
-                  <h3 className="card-title">Vital Signs Trend</h3>
-                  <table className="table mt-sm">
-                    <thead>
-                      <tr>
-                        <th>Date</th>
-                        <th>BP (mmHg)</th>
-                        <th>Pulse (bpm)</th>
-                        <th>Temp (°F)</th>
-                        <th>SpO2 (%)</th>
-                        <th>Weight</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td>2026-06-28</td>
-                        <td>128/82</td>
-                        <td>74</td>
-                        <td>98.4</td>
-                        <td>99%</td>
-                        <td>72 kg</td>
-                      </tr>
-                      <tr>
-                        <td>2026-05-14</td>
-                        <td>132/86 ⚠</td>
-                        <td>78</td>
-                        <td>98.6</td>
-                        <td>98%</td>
-                        <td>73 kg</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {activeTab === 'Clinical Notes' && (
-                <div className="timeline">
-                  <div className="timeline-item">
-                    <div className="timeline-icon bg-primary" style={{ background: 'rgba(59, 130, 246, 0.15)', color: 'var(--color-primary-light)' }}>
-                      <FileText size={14} />
-                    </div>
-                    <div className="timeline-content">
-                      <div className="flex justify-between">
-                        <span className="font-semibold text-primary">Dr. Anand Krishnamurthy (Cardiology)</span>
-                        <span className="text-xs text-muted">2026-06-28</span>
-                      </div>
-                      <p className="text-sm mt-xs">Patient presents for routine cardiology follow-up. BP is well controlled on Amlodipine 5mg. Denies chest pains or shortness of breath. Recommended to continue current lipid and hypertensive drugs. Review in 3 months.</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'Prescriptions' && (
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Prescribed Drug</th>
-                      <th>Dosage</th>
-                      <th>Duration</th>
-                      <th>Doctor</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td>2026-06-28</td>
-                      <td className="font-semibold text-primary">Amlodipine 5mg</td>
-                      <td>1-0-0 (Morning)</td>
-                      <td>30 Days</td>
-                      <td>Dr. Anand K.</td>
-                    </tr>
-                    <tr>
-                      <td>2026-06-28</td>
-                      <td className="font-semibold text-primary">Atorvastatin 10mg</td>
-                      <td>0-0-1 (Night)</td>
-                      <td>30 Days</td>
-                      <td>Dr. Anand K.</td>
-                    </tr>
-                  </tbody>
-                </table>
-              )}
-
-              {activeTab === 'Documents' && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-                  {['Government ID Card', 'Health Insurance Card', 'ECG Report Chart'].map(docName => (
-                    <div key={docName} className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, textAlign: 'center', padding: '16px' }}>
-                      <FileText size={24} className="text-accent" />
-                      <div className="font-semibold text-xs">{docName}</div>
-                      <button className="btn btn-secondary btn-sm mt-sm">Download</button>
-                    </div>
+                {/* Tabs */}
+                <div className="tabs" style={{ display: 'flex', borderBottom: '1px solid var(--color-border)', gap: 8 }}>
+                  {['Overview', 'Visit History', 'Prescriptions', 'Billing'].map(tab => (
+                    <button key={tab} className={`tab ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)} style={{ background: 'none', border: 'none', padding: '10px 16px', color: activeTab === tab ? 'var(--color-accent)' : 'var(--color-text-secondary)', borderBottom: activeTab === tab ? '2px solid var(--color-accent)' : 'none', cursor: 'pointer', fontWeight: activeTab === tab ? '600' : 'normal' }}>
+                      {tab}
+                    </button>
                   ))}
                 </div>
-              )}
+
+                {/* Tab Content */}
+                <div style={{ flex: 1, minHeight: '300px' }}>
+                  {loadingDetails ? (
+                    <div className="flex-center" style={{ padding: 40, flexDirection: 'column', gap: 12 }}>
+                      <Activity className="text-accent animated-pulse" size={32} />
+                      <span className="text-muted text-sm">Querying EMR databases...</span>
+                    </div>
+                  ) : (
+                    <>
+                      {activeTab === 'Overview' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                            <div className="card">
+                              <h3 className="card-title text-danger mb-sm" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <AlertCircle size={16} /> Allergies & Alerts
+                              </h3>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                                {selectedPatient.allergies?.length ? selectedPatient.allergies.map((a: string) => (
+                                  <span key={a} className="badge badge-danger">{a}</span>
+                                )) : <span className="text-muted text-sm">No known food or drug allergies</span>}
+                              </div>
+                            </div>
+                            <div className="card">
+                              <h3 className="card-title text-warning mb-sm" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <Activity size={16} /> Chronic Conditions
+                              </h3>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                                {selectedPatient.chronic?.length ? selectedPatient.chronic.map((c: string) => (
+                                  <span key={c} className="badge badge-warning">{c}</span>
+                                )) : <span className="text-muted text-sm">No chronic conditions registered</span>}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="card">
+                            <h3 className="card-title text-accent mb-sm">Demographics & Emergency Info</h3>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, fontSize: '13px' }}>
+                              <div>
+                                <p style={{ margin: '4px 0' }}><span className="text-muted">Email: </span><span className="text-white">{selectedPatient.email || 'N/A'}</span></p>
+                                <p style={{ margin: '4px 0' }}><span className="text-muted">Phone: </span><span className="text-white">{selectedPatient.phone}</span></p>
+                                <p style={{ margin: '4px 0' }}><span className="text-muted">Home Address: </span><span className="text-white">{selectedPatient.address}</span></p>
+                              </div>
+                              <div>
+                                <p style={{ margin: '4px 0' }}><span className="text-muted">Emergency Contact: </span><span className="text-white font-semibold">{selectedPatient.emergency || 'None'}</span></p>
+                                <p style={{ margin: '4px 0' }}><span className="text-muted">Emergency Phone: </span><span className="text-white">{selectedPatient.emergencyPhone || 'N/A'}</span></p>
+                                <p style={{ margin: '4px 0' }}><span className="text-muted">Registration Date: </span><span className="text-white">{selectedPatient.regDate}</span></p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {activeTab === 'Visit History' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                          <h3 className="text-md font-bold text-white mb-xs flex-align" style={{ gap: 8 }}><Clock size={16} className="text-accent" /> Complete Patient Visit History</h3>
+                          {sortedVisits.length === 0 ? (
+                            <div className="text-center py-6 text-muted">No historical clinical visits cataloged.</div>
+                          ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                              {sortedVisits.map((v: any, idx: number) => (
+                                <div key={idx} className="card-item" style={{ border: '1px solid var(--color-border)', borderRadius: '8px', padding: '16px', background: 'var(--color-bg-secondary)' }}>
+                                  <div className="flex-between" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '8px', marginBottom: '10px' }}>
+                                    <div className="flex-align" style={{ gap: 8 }}>
+                                      <span className="badge badge-primary" style={{ fontSize: '11px' }}>{v.date}</span>
+                                      <span className="text-xs text-muted">Consultant: </span>
+                                      <span className="text-xs font-semibold text-white">{Array.from(v.doctors).join(', ') || 'Attending Physician'}</span>
+                                    </div>
+                                    <span className="badge badge-purple" style={{ fontSize: '10px' }}>{v.type}</span>
+                                  </div>
+                                  
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                    {v.notes.map((note: string, nIdx: number) => (
+                                      <p key={nIdx} className="text-xs text-secondary" style={{ margin: 0 }}>• {note}</p>
+                                    ))}
+
+                                    {/* Prescriptions at this visit */}
+                                    {v.prescriptions && v.prescriptions.length > 0 && (
+                                      <div style={{ marginTop: 8, padding: '10px', background: 'rgba(255,255,255,0.02)', borderRadius: '6px' }}>
+                                        <div className="flex-align text-primary" style={{ gap: 4, fontSize: '11px', fontWeight: 'bold', marginBottom: '4px' }}>
+                                          <Pill size={12} /> Prescribed Medicines (Rx)
+                                        </div>
+                                        <table className="table" style={{ width: '100%', fontSize: '11px' }}>
+                                          <thead>
+                                            <tr>
+                                              <th>Drug</th>
+                                              <th>Dosage</th>
+                                              <th>Duration</th>
+                                              <th>Instructions</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody>
+                                            {v.prescriptions.map((m: any, mIdx: number) => (
+                                              <tr key={mIdx}>
+                                                <td className="font-semibold text-white">{m.name}</td>
+                                                <td className="text-accent font-bold">{m.dosage}</td>
+                                                <td>{m.duration}</td>
+                                                <td className="text-muted">{m.instructions}</td>
+                                              </tr>
+                                            ))}
+                                          </tbody>
+                                        </table>
+                                      </div>
+                                    )}
+
+                                    {/* Lab investigations ordered */}
+                                    {v.labs && v.labs.length > 0 && (
+                                      <div style={{ marginTop: 8, padding: '10px', background: 'rgba(255,255,255,0.02)', borderRadius: '6px' }}>
+                                        <div className="flex-align text-success" style={{ gap: 4, fontSize: '11px', fontWeight: 'bold', marginBottom: '4px' }}>
+                                          <Activity size={12} /> Lab Investigations Ordered
+                                        </div>
+                                        {v.labs.map((lb: any, lIdx: number) => (
+                                          <div key={lIdx} style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>
+                                            <strong>{lb.testName}</strong> - Status: <span className="text-accent">{lb.status}</span>
+                                            {lb.result && typeof lb.result === 'object' && (
+                                              <div style={{ display: 'flex', gap: 12, marginTop: 4, paddingLeft: 8, color: 'var(--color-text-muted)' }}>
+                                                {Object.entries(lb.result).map(([k, val]: any) => (
+                                                  <span key={k}>{k}: <strong className="text-white">{val}</strong></span>
+                                                ))}
+                                              </div>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+
+                                    {/* Radiology scans ordered */}
+                                    {v.scans && v.scans.length > 0 && (
+                                      <div style={{ marginTop: 8, padding: '10px', background: 'rgba(255,255,255,0.02)', borderRadius: '6px' }}>
+                                        <div className="flex-align text-warning" style={{ gap: 4, fontSize: '11px', fontWeight: 'bold', marginBottom: '4px' }}>
+                                          <FileCode size={12} /> Radiology Scans Ordered
+                                        </div>
+                                        {v.scans.map((sc: any, sIdx: number) => (
+                                          <div key={sIdx} style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>
+                                            <strong>{sc.type}</strong> - Status: <span className="text-accent">{sc.status}</span>
+                                            {sc.finding && (
+                                              <p style={{ margin: '2px 0 0 0', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>Findings: {sc.finding}</p>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {activeTab === 'Prescriptions' && (
+                        <div className="card">
+                          <h3 className="card-title">Accumulated Prescription Records</h3>
+                          {patientPrescriptions.length === 0 ? (
+                            <p className="text-muted text-sm py-4">No prescriptions found.</p>
+                          ) : (
+                            <table className="table mt-sm">
+                              <thead>
+                                <tr>
+                                  <th>Date</th>
+                                  <th>Diagnosis</th>
+                                  <th>Medicines</th>
+                                  <th>Physician</th>
+                                  <th>Status</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {patientPrescriptions.map(p => (
+                                  <tr key={p.id}>
+                                    <td>{p.date}</td>
+                                    <td>{p.diagnosis || 'General Treatment'}</td>
+                                    <td>
+                                      {p.medicines?.map((m: any) => `${m.name} (${m.dosage})`).join(', ')}
+                                    </td>
+                                    <td>{p.doctorName}</td>
+                                    <td><span className="badge badge-success">{p.status || 'Prescribed'}</span></td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          )}
+                        </div>
+                      )}
+
+                      {activeTab === 'Billing' && (
+                        <div className="card">
+                          <h3 className="card-title">Billing Transactions Invoice Ledger</h3>
+                          {patientBills.length === 0 ? (
+                            <p className="text-muted text-sm py-4">No bills found.</p>
+                          ) : (
+                            <table className="table mt-sm">
+                              <thead>
+                                <tr>
+                                  <th>Invoice ID</th>
+                                  <th>Type</th>
+                                  <th>Date</th>
+                                  <th>Total Bill</th>
+                                  <th>Paid Amount</th>
+                                  <th>Outstanding</th>
+                                  <th>Status</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {patientBills.map(b => (
+                                  <tr key={b.id}>
+                                    <td className="font-mono text-accent">{b.id}</td>
+                                    <td>{b.type === 'IP' ? 'In-Patient (IPD)' : 'Out-Patient (OPD)'}</td>
+                                    <td>{b.date}</td>
+                                    <td>₹{b.total?.toLocaleString()}</td>
+                                    <td className="text-success">₹{b.paid?.toLocaleString()}</td>
+                                    <td className="text-danger">₹{b.balance?.toLocaleString()}</td>
+                                    <td>
+                                      <span className={`badge badge-${b.status === 'Paid' ? 'success' : b.status === 'Partial' ? 'warning' : 'danger'}`}>
+                                        {b.status}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Right Column - Scan Frame and Portal Link (30% width) */}
+              <div style={{ flex: '1 1 280px', display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: 12, padding: 24, textAlign: 'center', height: 'fit-content', gap: 16 }}>
+                <div className="flex-align text-accent" style={{ gap: 6, fontWeight: 'bold', fontSize: '13px' }}>
+                  <QrCode size={16} /> PATIENT EMR QR PASS
+                </div>
+                
+                <div style={{ background: '#ffffff', padding: 12, borderRadius: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}>
+                  <SVGQRCode value={`${window.location.origin}/patient-record/${selectedPatient.id}`} size={180} />
+                </div>
+                
+                <div>
+                  <h4 style={{ fontSize: '14px', fontWeight: 'bold', color: '#f8fafc', margin: '4px 0' }}>Scan to Verify Details</h4>
+                  <p style={{ fontSize: '11px', color: '#94a3b8', lineHeight: 1.4, margin: '8px 0 0 0' }}>
+                    Point a smartphone camera at this QR code to instantly verify EMR records, historical prescriptions, lab parameters, scans, and invoices.
+                  </p>
+                </div>
+
+                <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.06)', width: '100%', margin: '8px 0' }} />
+
+                <Link to={`/patient-record/${selectedPatient.id}`} target="_blank" className="btn btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  <Eye size={14} /> Open Patient Portal
+                </Link>
+                <p className="text-xxs text-muted">HIPAA & NABH Encrypted Digital Ledger</p>
+              </div>
+
             </div>
+
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => exportPatientPDF(selectedPatient)}>Export Full PDF</button>
               <button className="btn btn-primary" onClick={() => setShowDetailModal(false)}>Close View</button>

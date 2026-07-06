@@ -601,10 +601,10 @@ const SuperModule: React.FC = () => {
                       {emrPrescriptions.length > 0 ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                           {emrPrescriptions.map((pres: any) => (
-                            <div key={pres._id} style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '16px', background: '#ffffff' }}>
+                            <div key={pres.id || pres._id} style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '16px', background: '#ffffff' }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px', marginBottom: '8px' }}>
                                 <strong className="text-accent">{pres.doctorName}</strong>
-                                <span style={{ fontSize: '12px', color: '#64748b' }}>{new Date(pres.createdAt).toLocaleDateString()}</span>
+                                <span style={{ fontSize: '12px', color: '#64748b' }}>{pres.date}</span>
                               </div>
                               <table className="table" style={{ width: '100%' }}>
                                 <thead>
@@ -650,10 +650,18 @@ const SuperModule: React.FC = () => {
                           </thead>
                           <tbody>
                             {emrLabTests.map((test: any) => (
-                              <tr key={test._id}>
+                              <tr key={test.id || test._id}>
                                 <td className="font-semibold text-primary">{test.testName}</td>
-                                <td>{new Date(test.createdAt || Date.now()).toLocaleDateString()}</td>
-                                <td><strong className="text-accent">{test.result || 'Pending'}</strong></td>
+                                <td>{test.ordered || test.collected || 'N/A'}</td>
+                                <td>
+                                  <strong className="text-accent">
+                                    {test.result && typeof test.result === 'object' ? (
+                                      Object.entries(test.result).map(([k, v]: any) => `${k}: ${v}`).join(', ')
+                                    ) : (
+                                      test.result || 'Pending'
+                                    )}
+                                  </strong>
+                                </td>
                                 <td>
                                   <span className={`badge ${test.status === 'Completed' ? 'badge-success' : 'badge-warning'}`}>
                                     {test.status}
@@ -684,10 +692,10 @@ const SuperModule: React.FC = () => {
                           </thead>
                           <tbody>
                             {emrRadiologyScans.map((scan: any) => (
-                              <tr key={scan._id}>
-                                <td className="font-semibold text-primary">{scan.scanType}</td>
-                                <td>{new Date(scan.createdAt || Date.now()).toLocaleDateString()}</td>
-                                <td>{scan.findings || 'Pending PACS sync'}</td>
+                              <tr key={scan.id || scan._id}>
+                                <td className="font-semibold text-primary">{scan.type}</td>
+                                <td>{scan.date}</td>
+                                <td>{scan.finding || 'Pending PACS sync'}</td>
                                 <td>
                                   <span className={`badge ${scan.status === 'Reported' ? 'badge-success' : 'badge-warning'}`}>
                                     {scan.status}
@@ -719,13 +727,13 @@ const SuperModule: React.FC = () => {
                           </thead>
                           <tbody>
                             {emrBills.map((bill: any) => (
-                              <tr key={bill._id}>
-                                <td className="font-mono text-xs">{bill.billNo}</td>
+                              <tr key={bill.id || bill._id}>
+                                <td className="font-mono text-xs">{bill.id}</td>
                                 <td><span className="badge badge-purple">{bill.type || 'OP'}</span></td>
                                 <td style={{ fontSize: '11px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                   {bill.items?.map((item: any) => `${item.desc} (x${item.qty})`).join(', ')}
                                 </td>
-                                <td className="font-semibold text-primary">₹{bill.totalAmount?.toLocaleString()}</td>
+                                <td className="font-semibold text-primary">₹{bill.total?.toLocaleString()}</td>
                                 <td>
                                   <span className={`badge ${bill.status === 'Paid' ? 'badge-success' : 'badge-danger'}`}>
                                     {bill.status}

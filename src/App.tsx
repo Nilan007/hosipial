@@ -23,7 +23,7 @@ import SuperModule from './pages/SuperModule';
 import PatientPortalQR from './pages/patients/PatientPortalQR';
 
 const ShellLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
 
   return (
     <div className="app-shell">

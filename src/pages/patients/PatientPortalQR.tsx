@@ -137,7 +137,7 @@ const PatientPortalQR: React.FC = () => {
               </p>
               <div className="flex-align" style={{ gap: 8, marginTop: 8 }}>
                 <span className="text-xs text-muted">Phone:</span> <span className="text-xs font-semibold text-white">{patient.phone}</span>
-                <span className="text-xs text-muted" style={{ marginLeft: 12 }}>Blood Group:</span> <span className="text-xs font-bold text-accent">{patient.bloodGroup}</span>
+                <span className="text-xs text-muted" style={{ marginLeft: 12 }}>Blood Group:</span> <span className="text-xs font-bold text-accent">{patient.blood || 'O+'}</span>
               </div>
             </div>
           </div>
@@ -172,7 +172,7 @@ const PatientPortalQR: React.FC = () => {
               <ShieldAlert size={14} /> Chronic Medical Conditions
             </div>
             <div className="text-xs text-white">
-              {patient.chronicConditions && patient.chronicConditions.length > 0 ? patient.chronicConditions.join(', ') : 'No pre-existing chronic conditions logged'}
+              {patient.chronic && patient.chronic.length > 0 ? patient.chronic.join(', ') : 'No pre-existing chronic conditions logged'}
             </div>
           </div>
 
@@ -181,7 +181,7 @@ const PatientPortalQR: React.FC = () => {
               <User size={14} /> Emergency Contact
             </div>
             <div className="text-xs text-white">
-              {patient.emergencyContact?.name ? `${patient.emergencyContact.name} (${patient.emergencyContact.relationship}) - ${patient.emergencyContact.phone}` : 'None provided'}
+              {patient.emergency ? `${patient.emergency} - ${patient.emergencyPhone || 'N/A'}` : 'None provided'}
             </div>
           </div>
         </div>
@@ -244,15 +244,15 @@ const PatientPortalQR: React.FC = () => {
                   </tr>
                   <tr>
                     <td className="text-muted py-2">Blood Group</td>
-                    <td className="font-bold text-accent text-right py-2">{patient.bloodGroup}</td>
+                    <td className="font-bold text-accent text-right py-2">{patient.blood || 'O+'}</td>
                   </tr>
                   <tr>
                     <td className="text-muted py-2">Insurance Provider</td>
-                    <td className="font-semibold text-right py-2">{patient.insurance?.provider || 'Self Pay'}</td>
+                    <td className="font-semibold text-right py-2">{patient.insurance || 'Self Pay'}</td>
                   </tr>
                   <tr>
-                    <td className="text-muted py-2">Policy Number</td>
-                    <td className="font-mono text-right py-2">{patient.insurance?.policyNumber || 'N/A'}</td>
+                    <td className="text-muted py-2">Home Address</td>
+                    <td className="font-semibold text-right py-2">{patient.address || 'City Center, Chennai'}</td>
                   </tr>
                   <tr>
                     <td className="text-muted py-2">Last Consultation Visit</td>
@@ -352,8 +352,8 @@ const PatientPortalQR: React.FC = () => {
                     </table>
 
                     <div className="flex-between" style={{ marginTop: 12, fontSize: 11, color: 'var(--color-text-muted)' }}>
-                      <span>Consultant Doctor: {pr.doctorName || 'Dr. Ramesh N (Cardiology)'}</span>
-                      <span>Log Timestamp: {new Date(pr.date || Date.now()).toLocaleDateString()}</span>
+                      <span>Consultant Doctor: {pr.doctorName || 'Dr. Anand Krishnamurthy'}</span>
+                      <span>Log Date: {pr.date}</span>
                     </div>
                   </div>
                 ))}
@@ -404,16 +404,16 @@ const PatientPortalQR: React.FC = () => {
                     {bills.map((b) => (
                       <tr key={b.id}>
                         <td className="font-mono font-bold text-accent">{b.id}</td>
-                        <td className="font-semibold text-white">{b.department || 'Out-Patient (OPD)'}</td>
+                        <td className="font-semibold text-white">{b.type === 'IP' ? 'In-Patient (IPD)' : 'Out-Patient (OPD)'}</td>
                         <td className="font-semibold">₹{b.total?.toLocaleString('en-IN')}</td>
                         <td className="text-success font-semibold">₹{b.paid?.toLocaleString('en-IN')}</td>
                         <td className="text-danger font-semibold">₹{b.balance?.toLocaleString('en-IN')}</td>
                         <td>
-                          <span className={`badge badge-${b.status === 'Paid' ? 'success' : b.status === 'Unpaid' ? 'danger' : 'warning'}`}>
+                          <span className={`badge badge-${b.status === 'Paid' ? 'success' : b.status === 'Partial' ? 'warning' : 'danger'}`}>
                             {b.status}
                           </span>
                         </td>
-                        <td className="text-xs text-muted">{new Date(b.date || Date.now()).toLocaleDateString()}</td>
+                        <td className="text-xs text-muted">{b.date}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -441,7 +441,7 @@ const PatientPortalQR: React.FC = () => {
                         <span className="font-semibold text-white">Specimen Code: </span>
                         <span className="font-mono text-accent font-bold">{lb.id}</span>
                       </div>
-                      <span className={`badge badge-${lb.status === 'Reported' ? 'success' : 'warning'}`}>
+                      <span className={`badge badge-${lb.status === 'Completed' ? 'success' : 'warning'}`}>
                         {lb.status}
                       </span>
                     </div>
@@ -453,31 +453,23 @@ const PatientPortalQR: React.FC = () => {
                       </div>
                       <div>
                         <span className="text-xxs text-muted block">ORDERED BY PHYSICIAN</span>
-                        <span className="text-sm text-secondary block">{lb.orderedBy}</span>
+                        <span className="text-sm text-secondary block">{lb.doctorId || 'Dr. Anand K.'}</span>
                       </div>
                     </div>
 
-                    {lb.parameters && (
+                    {lb.result && typeof lb.result === 'object' && (
                       <table className="table" style={{ fontSize: 12 }}>
                         <thead>
                           <tr>
                             <th>Parameter Test</th>
                             <th>Observed Value</th>
-                            <th>Reference Limits</th>
-                            <th>Status Flag</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {lb.parameters.map((p: any, idx: number) => (
-                            <tr key={idx}>
-                              <td>{p.name}</td>
-                              <td className="font-bold text-white">{p.value} {p.unit}</td>
-                              <td className="text-muted">{p.referenceRange}</td>
-                              <td>
-                                <span className={`badge badge-${p.status === 'Normal' ? 'success' : 'danger'}`}>
-                                  {p.status}
-                                </span>
-                              </td>
+                          {Object.entries(lb.result).map(([name, val]: any) => (
+                            <tr key={name}>
+                              <td>{name}</td>
+                              <td className="font-bold text-white">{val}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -516,21 +508,21 @@ const PatientPortalQR: React.FC = () => {
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 12 }}>
                       <div>
                         <span className="text-xxs text-muted block">MODALITY TYPE</span>
-                        <span className="text-sm font-semibold text-white block">{r.modality} ({r.scanType})</span>
+                        <span className="text-sm font-semibold text-white block">{r.type} ({r.modality})</span>
                       </div>
                       <div>
                         <span className="text-xxs text-muted block">REPORTING RADIOLOGIST</span>
-                        <span className="text-sm text-secondary block">{r.radiologist || 'Dr. Sarika G (MD)'}</span>
+                        <span className="text-sm text-secondary block">{r.radiologist || 'Dr. Murugesan P.'}</span>
                       </div>
                       <div>
                         <span className="text-xxs text-muted block">SCAN DATE</span>
-                        <span className="text-sm text-secondary block">{new Date(r.date || Date.now()).toLocaleDateString()}</span>
+                        <span className="text-sm text-secondary block">{r.date}</span>
                       </div>
                     </div>
 
                     <div style={{ padding: 12, background: 'rgba(255,255,255,0.02)', borderRadius: 6, borderLeft: '3px solid var(--color-primary)' }}>
                       <span className="text-xxs text-muted block mb-1">RADIOLOGICAL FINDINGS & CLINICAL IMPRESSION</span>
-                      <p className="text-xs text-white" style={{ lineHeight: 1.5, margin: 0 }}>{r.findings || 'No abnormalities detected in scans.'}</p>
+                      <p className="text-xs text-white" style={{ lineHeight: 1.5, margin: 0 }}>{r.finding || 'No abnormalities detected in scans.'}</p>
                     </div>
                   </div>
                 ))}
@@ -569,7 +561,7 @@ const PatientPortalQR: React.FC = () => {
               <td style={{ fontWeight: 'bold', padding: '6px 0' }}>Age / Gender:</td>
               <td>{patient.age} Years / {patient.gender}</td>
               <td style={{ fontWeight: 'bold', padding: '6px 0' }}>Blood Group:</td>
-              <td>{patient.bloodGroup}</td>
+              <td>{patient.blood || 'O+'}</td>
             </tr>
             <tr>
               <td style={{ fontWeight: 'bold', padding: '6px 0' }}>Phone:</td>
@@ -612,23 +604,19 @@ const PatientPortalQR: React.FC = () => {
         <h4 style={{ borderBottom: '1px solid #000', paddingBottom: 4, marginTop: 24 }}>2. Lab Diagnostics (LIMS Parameters)</h4>
         {labs.map((lb, idx) => (
           <div key={idx} style={{ marginBottom: 12 }}>
-            <p style={{ margin: '4px 0', fontSize: 12 }}><strong>Ref:</strong> {lb.id} | <strong>Test:</strong> {lb.testName} | <strong>Ordered By:</strong> {lb.orderedBy}</p>
+            <p style={{ margin: '4px 0', fontSize: 12 }}><strong>Ref:</strong> {lb.id} | <strong>Test:</strong> {lb.testName} | <strong>Ordered By:</strong> {lb.doctorId || 'Dr. Anand K.'}</p>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }} border={1}>
               <thead>
                 <tr>
                   <th style={{ padding: 4 }}>Parameter</th>
                   <th style={{ padding: 4 }}>Observed Value</th>
-                  <th style={{ padding: 4 }}>Reference Limits</th>
-                  <th style={{ padding: 4 }}>Flag</th>
                 </tr>
               </thead>
               <tbody>
-                {lb.parameters?.map((p: any, pIdx: number) => (
+                {lb.result && typeof lb.result === 'object' && Object.entries(lb.result).map(([name, val]: any, pIdx: number) => (
                   <tr key={pIdx}>
-                    <td style={{ padding: 4 }}>{p.name}</td>
-                    <td style={{ padding: 4 }}>{p.value} {p.unit}</td>
-                    <td style={{ padding: 4 }}>{p.referenceRange}</td>
-                    <td style={{ padding: 4, color: p.status === 'Normal' ? 'green' : 'red' }}>{p.status}</td>
+                    <td style={{ padding: 4 }}>{name}</td>
+                    <td style={{ padding: 4 }}>{val}</td>
                   </tr>
                 ))}
               </tbody>
@@ -640,9 +628,9 @@ const PatientPortalQR: React.FC = () => {
         <h4 style={{ borderBottom: '1px solid #000', paddingBottom: 4, marginTop: 24 }}>3. PACS Radiology Scans & Clinical Interpretations</h4>
         {radiology.map((r, idx) => (
           <div key={idx} style={{ borderBottom: '1px dashed #ccc', paddingBottom: 8, marginBottom: 8 }}>
-            <p style={{ margin: '4px 0', fontSize: 12 }}><strong>Ref:</strong> {r.id} | <strong>Modality:</strong> {r.modality} ({r.scanType}) | <strong>Date:</strong> {r.date}</p>
+            <p style={{ margin: '4px 0', fontSize: 12 }}><strong>Ref:</strong> {r.id} | <strong>Modality:</strong> {r.modality} ({r.type}) | <strong>Date:</strong> {r.date}</p>
             <p style={{ margin: '4px 0', fontSize: 11 }}><strong>Findings & Clinical Impression:</strong></p>
-            <p style={{ margin: '2px 0 0 0', fontSize: 11, color: '#333', fontStyle: 'italic' }}>{r.findings}</p>
+            <p style={{ margin: '2px 0 0 0', fontSize: 11, color: '#333', fontStyle: 'italic' }}>{r.finding}</p>
           </div>
         ))}
 
@@ -663,7 +651,7 @@ const PatientPortalQR: React.FC = () => {
             {bills.map((b, idx) => (
               <tr key={idx}>
                 <td style={{ padding: 4, fontFamily: 'monospace' }}>{b.id}</td>
-                <td style={{ padding: 4 }}>{b.department || 'OPD'}</td>
+                <td style={{ padding: 4 }}>{b.type === 'IP' ? 'In-Patient (IPD)' : 'Out-Patient (OPD)'}</td>
                 <td style={{ padding: 4 }}>₹{b.total}</td>
                 <td style={{ padding: 4 }}>₹{b.paid}</td>
                 <td style={{ padding: 4, color: b.balance > 0 ? 'red' : 'black' }}>₹{b.balance}</td>
