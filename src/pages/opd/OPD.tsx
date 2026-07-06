@@ -6,6 +6,45 @@ import {
 import { api } from '../../utils/api';
 import { doctors, patients, prescriptions } from '../../data/mockData';
 import { exportTablePDF } from '../../utils/exportUtils';
+import { Link } from 'react-router-dom';
+
+const SVGQRCode: React.FC<{ value: string; size?: number }> = ({ value, size = 64 }) => {
+  const getPixel = (x: number, y: number) => {
+    if (x < 4 && y < 4) return (x === 0 || x === 3 || y === 0 || y === 3) || (x === 1 && y === 1) || (x === 2 && y === 2);
+    if (x > 10 && y < 4) {
+      const rx = x - 11;
+      return (rx === 0 || rx === 3 || y === 0 || y === 3) || (rx === 1 && y === 1) || (rx === 2 && y === 2);
+    }
+    if (x < 4 && y > 10) {
+      const ry = y - 11;
+      return (x === 0 || x === 3 || ry === 0 || ry === 3) || (x === 1 && ry === 1) || (x === 2 && ry === 2);
+    }
+    if (x === 11 && y === 11) return true;
+    let val = 0;
+    for (let i = 0; i < value.length; i++) {
+      val += value.charCodeAt(i) * (x + 1) * (y + 2);
+    }
+    return (val % 3 === 0 || val % 7 === 0);
+  };
+
+  const rects = [];
+  for (let y = 0; y < 15; y++) {
+    for (let x = 0; x < 15; x++) {
+      if (getPixel(x, y)) {
+        rects.push(
+          <rect key={`${x}-${y}`} x={x} y={y} width={1} height={1} fill="currentColor" />
+        );
+      }
+    }
+  }
+
+  return (
+    <svg width={size} height={size} viewBox="0 0 15 15" style={{ color: 'var(--color-accent)' }}>
+      <rect width={15} height={15} fill="transparent" />
+      {rects}
+    </svg>
+  );
+};
 
 const OPD: React.FC = () => {
   const [selectedApt, setSelectedApt] = useState<any>(null);
@@ -155,11 +194,18 @@ const OPD: React.FC = () => {
           {selectedApt ? (
             <div>
               <div className="flex justify-between items-center mb-md" style={{ borderBottom: '1px solid var(--color-border)', paddingBottom: 12 }}>
-                <div>
-                  <h3 className="card-title text-accent">Active Consultation: {selectedApt.patientName}</h3>
-                  <p className="text-secondary text-xs">MRN Reference ID: {selectedApt.patientId}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <div>
+                    <h3 className="card-title text-accent" style={{ margin: 0 }}>Active Consultation: {selectedApt.patientName}</h3>
+                    <p className="text-secondary text-xs">MRN Reference ID: {selectedApt.patientId}</p>
+                  </div>
+                  <Link to={`/patient-record/${selectedApt.patientId}`} target="_blank" title="Scan or click to view Patient EMR">
+                    <div style={{ background: '#fff', padding: 4, borderRadius: 6, display: 'inline-block' }}>
+                      <SVGQRCode value={`${window.location.origin}/patient-record/${selectedApt.patientId}`} size={36} />
+                    </div>
+                  </Link>
                 </div>
-                <div className="form-group" style={{ width: 180 }}>
+                <div className="form-group" style={{ width: 180, marginBottom: 0 }}>
                   <select className="form-control" onChange={handleSelectTemplate} defaultValue="">
                     <option value="" disabled>Load Diagnosis Template</option>
                     <option value="Hypertension">Hypertension Template</option>

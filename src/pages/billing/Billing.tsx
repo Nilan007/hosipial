@@ -6,6 +6,45 @@ import {
 import { api } from '../../utils/api';
 import { patients } from '../../data/mockData';
 import { exportInvoicePDF, exportTablePDF, exportToExcel } from '../../utils/exportUtils';
+import { Link } from 'react-router-dom';
+
+const SVGQRCode: React.FC<{ value: string; size?: number }> = ({ value, size = 64 }) => {
+  const getPixel = (x: number, y: number) => {
+    if (x < 4 && y < 4) return (x === 0 || x === 3 || y === 0 || y === 3) || (x === 1 && y === 1) || (x === 2 && y === 2);
+    if (x > 10 && y < 4) {
+      const rx = x - 11;
+      return (rx === 0 || rx === 3 || y === 0 || y === 3) || (rx === 1 && y === 1) || (rx === 2 && y === 2);
+    }
+    if (x < 4 && y > 10) {
+      const ry = y - 11;
+      return (x === 0 || x === 3 || ry === 0 || ry === 3) || (x === 1 && ry === 1) || (x === 2 && ry === 2);
+    }
+    if (x === 11 && y === 11) return true;
+    let val = 0;
+    for (let i = 0; i < value.length; i++) {
+      val += value.charCodeAt(i) * (x + 1) * (y + 2);
+    }
+    return (val % 3 === 0 || val % 7 === 0);
+  };
+
+  const rects = [];
+  for (let y = 0; y < 15; y++) {
+    for (let x = 0; x < 15; x++) {
+      if (getPixel(x, y)) {
+        rects.push(
+          <rect key={`${x}-${y}`} x={x} y={y} width={1} height={1} fill="currentColor" />
+        );
+      }
+    }
+  }
+
+  return (
+    <svg width={size} height={size} viewBox="0 0 15 15" style={{ color: 'var(--color-accent)' }}>
+      <rect width={15} height={15} fill="transparent" />
+      {rects}
+    </svg>
+  );
+};
 
 const Billing: React.FC = () => {
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -180,10 +219,20 @@ const Billing: React.FC = () => {
         <div className="card">
           {selectedBill ? (
             <div>
-              <div style={{ borderBottom: '1px solid var(--color-border)', paddingBottom: 12, marginBottom: 16 }}>
-                <h3 className="card-title text-accent">Receipt: {selectedBill.id}</h3>
-                <p className="text-secondary text-sm">Patient: {selectedBill.patientName}</p>
-                <p className="text-muted text-xs">Date: {selectedBill.date} | MRN: {selectedBill.patientId}</p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border)', paddingBottom: 12, marginBottom: 16 }}>
+                <div>
+                  <h3 className="card-title text-accent" style={{ margin: 0 }}>Receipt: {selectedBill.id}</h3>
+                  <p className="text-secondary text-sm" style={{ marginTop: 2 }}>Patient: {selectedBill.patientName}</p>
+                  <p className="text-muted text-xs">Date: {selectedBill.date} | MRN: {selectedBill.patientId}</p>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                  <Link to={`/patient-record/${selectedBill.patientId}`} target="_blank" title="Scan or click to view Patient EMR">
+                    <div style={{ background: '#fff', padding: 4, borderRadius: 6, display: 'inline-block' }}>
+                      <SVGQRCode value={`${window.location.origin}/patient-record/${selectedBill.patientId}`} size={40} />
+                    </div>
+                  </Link>
+                  <span className="text-xxs text-muted">Scan EMR QR</span>
+                </div>
               </div>
 
               <div className="section mb-md">

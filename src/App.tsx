@@ -20,6 +20,7 @@ import Radiology from './pages/radiology/Radiology';
 import Billing from './pages/billing/Billing';
 import Admin from './pages/admin/Admin';
 import SuperModule from './pages/SuperModule';
+import PatientPortalQR from './pages/patients/PatientPortalQR';
 
 const ShellLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [collapsed, setCollapsed] = useState(false);
@@ -48,6 +49,7 @@ const App: React.FC = () => {
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/patient-record/:mrn" element={<PatientPortalQR />} />
           
           <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
           <Route path="/patients" element={<PrivateRoute><Patients /></PrivateRoute>} />

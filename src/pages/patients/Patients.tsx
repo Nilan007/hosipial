@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Users, Search, Download, Plus, Eye, Edit2, ShieldAlert,
   Calendar, FileText, Activity, AlertCircle, Sparkles, CheckCircle
@@ -345,9 +346,11 @@ const Patients: React.FC = () => {
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginLeft: 'auto', order: 2 }}>
                   <div className="text-right">
                     <span className="text-muted text-xs block">PATIENT QR FILE</span>
-                    <span className="text-secondary text-xs block">Scan to fetch EMR</span>
+                    <span className="text-secondary text-xs block">Scan or click to open</span>
                   </div>
-                  <SVGQRCode value={selectedPatient.id} size={56} />
+                  <Link to={`/patient-record/${selectedPatient.id}`} target="_blank" className="qr-link" title="Open EMR Patient Portal" style={{ color: 'inherit', display: 'inline-block' }}>
+                    <SVGQRCode value={`${window.location.origin}/patient-record/${selectedPatient.id}`} size={56} />
+                  </Link>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, flex: 1 }}>
                   <div>

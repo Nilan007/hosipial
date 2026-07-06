@@ -6,6 +6,45 @@ import {
 import { api } from '../../utils/api';
 import { wards, patients, doctors } from '../../data/mockData';
 import { exportTablePDF } from '../../utils/exportUtils';
+import { Link } from 'react-router-dom';
+
+const SVGQRCode: React.FC<{ value: string; size?: number }> = ({ value, size = 64 }) => {
+  const getPixel = (x: number, y: number) => {
+    if (x < 4 && y < 4) return (x === 0 || x === 3 || y === 0 || y === 3) || (x === 1 && y === 1) || (x === 2 && y === 2);
+    if (x > 10 && y < 4) {
+      const rx = x - 11;
+      return (rx === 0 || rx === 3 || y === 0 || y === 3) || (rx === 1 && y === 1) || (rx === 2 && y === 2);
+    }
+    if (x < 4 && y > 10) {
+      const ry = y - 11;
+      return (x === 0 || x === 3 || ry === 0 || ry === 3) || (x === 1 && ry === 1) || (x === 2 && ry === 2);
+    }
+    if (x === 11 && y === 11) return true;
+    let val = 0;
+    for (let i = 0; i < value.length; i++) {
+      val += value.charCodeAt(i) * (x + 1) * (y + 2);
+    }
+    return (val % 3 === 0 || val % 7 === 0);
+  };
+
+  const rects = [];
+  for (let y = 0; y < 15; y++) {
+    for (let x = 0; x < 15; x++) {
+      if (getPixel(x, y)) {
+        rects.push(
+          <rect key={`${x}-${y}`} x={x} y={y} width={1} height={1} fill="currentColor" />
+        );
+      }
+    }
+  }
+
+  return (
+    <svg width={size} height={size} viewBox="0 0 15 15" style={{ color: 'var(--color-accent)' }}>
+      <rect width={15} height={15} fill="transparent" />
+      {rects}
+    </svg>
+  );
+};
 
 const IPD: React.FC = () => {
   const [admissions, setAdmissions] = useState<any[]>([]);
@@ -167,10 +206,20 @@ const IPD: React.FC = () => {
         <div className="card">
           {selectedAdmission ? (
             <div>
-              <div style={{ borderBottom: '1px solid var(--color-border)', paddingBottom: 12, marginBottom: 16 }}>
-                <h3 className="card-title text-accent">Active Bed: Room {selectedAdmission.roomNo} ({selectedAdmission.bedNo})</h3>
-                <p className="text-secondary text-sm">Patient: {selectedAdmission.patientName}</p>
-                <span className="badge badge-primary mt-sm">{selectedAdmission.wardName}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border)', paddingBottom: 12, marginBottom: 16 }}>
+                <div>
+                  <h3 className="card-title text-accent" style={{ margin: 0 }}>Active Bed: Room {selectedAdmission.roomNo} ({selectedAdmission.bedNo})</h3>
+                  <p className="text-secondary text-sm" style={{ marginTop: 2 }}>Patient: {selectedAdmission.patientName}</p>
+                  <span className="badge badge-primary mt-sm">{selectedAdmission.wardName}</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                  <Link to={`/patient-record/${selectedAdmission.patientId}`} target="_blank" title="Scan or click to view Patient EMR">
+                    <div style={{ background: '#fff', padding: 4, borderRadius: 6, display: 'inline-block' }}>
+                      <SVGQRCode value={`${window.location.origin}/patient-record/${selectedAdmission.patientId}`} size={40} />
+                    </div>
+                  </Link>
+                  <span className="text-xxs text-muted">Scan Bed QR</span>
+                </div>
               </div>
 
               <div className="section mb-md">
@@ -216,14 +265,22 @@ const IPD: React.FC = () => {
       {printedSummary && (
         <div className="card preview-mode mt-lg">
           <div className="print-letterhead" style={{ display: 'block' }}>
-            <div className="print-letterhead-header">
+            <div className="print-letterhead-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--color-primary-light)' }}>MEDICORE HOSPITAL</h2>
-                <p style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>NABH Certified Multi-Specialty Hospital</p>
+                <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--color-primary-light)', margin: 0 }}>MEDICORE HOSPITAL</h2>
+                <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', margin: '4px 0 0 0' }}>NABH Certified Multi-Specialty Hospital</p>
+                <p style={{ fontSize: '10px', color: 'var(--color-text-muted)', margin: '2px 0 0 0' }}>100, OMR IT Highway, Chennai - 600096</p>
               </div>
-              <div className="print-hospital-details">
-                <p>100, OMR IT Highway, Chennai - 600096</p>
-                <p>Phone: +91 44 4890 3000 | Web: www.medicore.org</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ textAlign: 'right' }}>
+                  <span className="text-muted text-xxs block" style={{ fontWeight: 'bold' }}>PATIENT EMR QR</span>
+                  <span className="text-secondary text-xxs block">Scan to verify chart</span>
+                </div>
+                <Link to={`/patient-record/${printedSummary.patientId}`} target="_blank" style={{ color: 'inherit', display: 'inline-block' }}>
+                  <div style={{ background: '#fff', padding: 4, borderRadius: 6, display: 'inline-block' }}>
+                    <SVGQRCode value={`${window.location.origin}/patient-record/${printedSummary.patientId}`} size={44} />
+                  </div>
+                </Link>
               </div>
             </div>
             <div className="print-doc-title">PATIENT DISCHARGE SUMMARY</div>
