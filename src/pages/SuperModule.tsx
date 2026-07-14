@@ -4223,117 +4223,7 @@ const SuperModule: React.FC = () => {
     );
   }
 
-  return (
-    <div className="page-content">
-      <div className="page-header">
-        <h1 className="page-title">MediCore Support Modules</h1>
-        <p className="page-subtitle">Operational support databases.</p>
-      </div>
-      <div className="card">
-        <h3 className="card-title">Hospital Services</h3>
-        <p className="text-secondary text-sm mt-xs">This panel integrates all minor support departments (Diet, Facility, CRM feedback, MRD logs, and Reports charts) within the central database system.</p>
-        <div className="empty-state">
-          <Sparkles size={48} className="text-accent mb-md" />
-          <div className="empty-state-title">Services Interface Online</div>
-          <p className="text-secondary text-xs">Standard compliance check points are logging activity continuously. Use the navigation sidebar to configure logs.</p>
-        </div>
-      </div>
 
-      {/* Employee payroll payslip printing modal */}
-      {selectedStaffPayslip && (
-        <div className="modal-overlay">
-          <div className="modal modal-lg preview-mode">
-            <div className="modal-header">
-              <h2 className="modal-title">Employee Payslip Console</h2>
-              <button className="btn-secondary" onClick={() => setSelectedStaffPayslip(null)}>✕</button>
-            </div>
-            <div className="modal-body" style={{ background: '#f8fafc' }}>
-              <div className="print-letterhead" style={{ display: 'block', border: '1px solid #cbd5e1', padding: 24, background: '#ffffff', borderRadius: 8 }}>
-                <div className="print-letterhead-header">
-                  <div>
-                    <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--color-primary-light)' }}>MEDICORE HOSPITAL</h2>
-                    <p style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Corporate HR Operations & Payroll Center</p>
-                  </div>
-                  <div className="print-hospital-details">
-                    <p>100, OMR IT Highway, Chennai - 600096</p>
-                    <p>Phone: +91 44 4890 3000 | Email: hr@medicore.org</p>
-                  </div>
-                </div>
-                <div className="print-doc-title">SALARY SLIP — JULY 2026</div>
-
-                <div className="print-grid-2">
-                  <div className="print-grid-item">
-                    <div className="print-grid-label">EMPLOYEE NAME</div>
-                    <div className="font-bold text-primary">{selectedStaffPayslip.name}</div>
-                  </div>
-                  <div className="print-grid-item">
-                    <div className="print-grid-label">EMPLOYEE ID / DESIGNATION</div>
-                    <div>{selectedStaffPayslip.id} | {selectedStaffPayslip.role}</div>
-                  </div>
-                  <div className="print-grid-item">
-                    <div className="print-grid-label">SHIFT HOURS</div>
-                    <div>{selectedStaffPayslip.shift}</div>
-                  </div>
-                  <div className="print-grid-item">
-                    <div className="print-grid-label">ATTENDANCE STATUS</div>
-                    <div className="font-semibold text-success">{selectedStaffPayslip.attendance}</div>
-                  </div>
-                </div>
-
-                <div className="grid grid-2 mb-md" style={{ gap: '20px', borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
-                  <div>
-                    <div className="font-bold text-xs text-secondary mb-sm uppercase">Earnings Breakdown</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: '12px' }}>
-                      <div className="flex justify-between"><span>Basic Salary:</span><span className="font-semibold">₹45,000.00</span></div>
-                      <div className="flex justify-between"><span>House Rent Allowance (HRA):</span><span className="font-semibold">₹15,000.00</span></div>
-                      <div className="flex justify-between"><span>Conveyance Allowances:</span><span className="font-semibold">₹5,000.00</span></div>
-                      <div className="flex justify-between" style={{ borderTop: '1px solid #f1f5f9', paddingTop: 6, fontWeight: 'bold' }}>
-                        <span>Total Earnings (A):</span><span>₹65,000.00</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="font-bold text-xs text-secondary mb-sm uppercase">Deductions Breakdown</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: '12px' }}>
-                      <div className="flex justify-between"><span>Provident Fund (PF):</span><span className="font-semibold">₹3,500.00</span></div>
-                      <div className="flex justify-between"><span>Professional Tax:</span><span className="font-semibold">₹200.00</span></div>
-                      <div className="flex justify-between"><span>Medical Insurance contribution:</span><span className="font-semibold">₹1,300.00</span></div>
-                      <div className="flex justify-between" style={{ borderTop: '1px solid #f1f5f9', paddingTop: 6, fontWeight: 'bold' }}>
-                        <span>Total Deductions (B):</span><span>₹5,000.00</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-center" style={{ borderTop: '2px solid #0f172a', paddingTop: '12px', marginTop: '20px' }}>
-                  <div className="font-bold text-primary" style={{ fontSize: '16px' }}>NET DISBURSED SALARY (A - B)</div>
-                  <div className="font-extrabold text-accent" style={{ fontSize: '20px' }}>₹60,000.00</div>
-                </div>
-
-                <div className="print-signature-row" style={{ marginTop: '40px' }}>
-                  <div className="print-signature-block">
-                    <div className="print-signature-line" />
-                    <p style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>Employee Signature</p>
-                  </div>
-                  <div className="print-signature-block">
-                    <div className="print-signature-line" />
-                    <p style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>HR Administrator</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setSelectedStaffPayslip(null)}>Close</button>
-              <button className="btn btn-primary" onClick={() => window.print()} style={{ justifyContent: 'center' }}>
-                <Printer size={14} style={{ marginRight: 6 }} /> Print Payslip Slip
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
 
   // ─── DIET & NUTRITION MODULE ──────────────────────────────────────────────
   if (path === '/diet') {
@@ -5289,6 +5179,117 @@ const SuperModule: React.FC = () => {
     );
   }
 
+  return (
+    <div className="page-content">
+      <div className="page-header">
+        <h1 className="page-title">MediCore Support Modules</h1>
+        <p className="page-subtitle">Operational support databases.</p>
+      </div>
+      <div className="card">
+        <h3 className="card-title">Hospital Services</h3>
+        <p className="text-secondary text-sm mt-xs">This panel integrates all minor support departments (Diet, Facility, CRM feedback, MRD logs, and Reports charts) within the central database system.</p>
+        <div className="empty-state">
+          <Sparkles size={48} className="text-accent mb-md" />
+          <div className="empty-state-title">Services Interface Online</div>
+          <p className="text-secondary text-xs">Standard compliance check points are logging activity continuously. Use the navigation sidebar to configure logs.</p>
+        </div>
+      </div>
+
+      {/* Employee payroll payslip printing modal */}
+      {selectedStaffPayslip && (
+        <div className="modal-overlay">
+          <div className="modal modal-lg preview-mode">
+            <div className="modal-header">
+              <h2 className="modal-title">Employee Payslip Console</h2>
+              <button className="btn-secondary" onClick={() => setSelectedStaffPayslip(null)}>✕</button>
+            </div>
+            <div className="modal-body" style={{ background: '#f8fafc' }}>
+              <div className="print-letterhead" style={{ display: 'block', border: '1px solid #cbd5e1', padding: 24, background: '#ffffff', borderRadius: 8 }}>
+                <div className="print-letterhead-header">
+                  <div>
+                    <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--color-primary-light)' }}>MEDICORE HOSPITAL</h2>
+                    <p style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Corporate HR Operations & Payroll Center</p>
+                  </div>
+                  <div className="print-hospital-details">
+                    <p>100, OMR IT Highway, Chennai - 600096</p>
+                    <p>Phone: +91 44 4890 3000 | Email: hr@medicore.org</p>
+                  </div>
+                </div>
+                <div className="print-doc-title">SALARY SLIP — JULY 2026</div>
+
+                <div className="print-grid-2">
+                  <div className="print-grid-item">
+                    <div className="print-grid-label">EMPLOYEE NAME</div>
+                    <div className="font-bold text-primary">{selectedStaffPayslip.name}</div>
+                  </div>
+                  <div className="print-grid-item">
+                    <div className="print-grid-label">EMPLOYEE ID / DESIGNATION</div>
+                    <div>{selectedStaffPayslip.id} | {selectedStaffPayslip.role}</div>
+                  </div>
+                  <div className="print-grid-item">
+                    <div className="print-grid-label">SHIFT HOURS</div>
+                    <div>{selectedStaffPayslip.shift}</div>
+                  </div>
+                  <div className="print-grid-item">
+                    <div className="print-grid-label">ATTENDANCE STATUS</div>
+                    <div className="font-semibold text-success">{selectedStaffPayslip.attendance}</div>
+                  </div>
+                </div>
+
+                <div className="grid grid-2 mb-md" style={{ gap: '20px', borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
+                  <div>
+                    <div className="font-bold text-xs text-secondary mb-sm uppercase">Earnings Breakdown</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: '12px' }}>
+                      <div className="flex justify-between"><span>Basic Salary:</span><span className="font-semibold">₹45,000.00</span></div>
+                      <div className="flex justify-between"><span>House Rent Allowance (HRA):</span><span className="font-semibold">₹15,000.00</span></div>
+                      <div className="flex justify-between"><span>Conveyance Allowances:</span><span className="font-semibold">₹5,000.00</span></div>
+                      <div className="flex justify-between" style={{ borderTop: '1px solid #f1f5f9', paddingTop: 6, fontWeight: 'bold' }}>
+                        <span>Total Earnings (A):</span><span>₹65,000.00</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="font-bold text-xs text-secondary mb-sm uppercase">Deductions Breakdown</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: '12px' }}>
+                      <div className="flex justify-between"><span>Provident Fund (PF):</span><span className="font-semibold">₹3,500.00</span></div>
+                      <div className="flex justify-between"><span>Professional Tax:</span><span className="font-semibold">₹200.00</span></div>
+                      <div className="flex justify-between"><span>Medical Insurance contribution:</span><span className="font-semibold">₹1,300.00</span></div>
+                      <div className="flex justify-between" style={{ borderTop: '1px solid #f1f5f9', paddingTop: 6, fontWeight: 'bold' }}>
+                        <span>Total Deductions (B):</span><span>₹5,000.00</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center" style={{ borderTop: '2px solid #0f172a', paddingTop: '12px', marginTop: '20px' }}>
+                  <div className="font-bold text-primary" style={{ fontSize: '16px' }}>NET DISBURSED SALARY (A - B)</div>
+                  <div className="font-extrabold text-accent" style={{ fontSize: '20px' }}>₹60,000.00</div>
+                </div>
+
+                <div className="print-signature-row" style={{ marginTop: '40px' }}>
+                  <div className="print-signature-block">
+                    <div className="print-signature-line" />
+                    <p style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>Employee Signature</p>
+                  </div>
+                  <div className="print-signature-block">
+                    <div className="print-signature-line" />
+                    <p style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>HR Administrator</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setSelectedStaffPayslip(null)}>Close</button>
+              <button className="btn btn-primary" onClick={() => window.print()} style={{ justifyContent: 'center' }}>
+                <Printer size={14} style={{ marginRight: 6 }} /> Print Payslip Slip
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default SuperModule;
