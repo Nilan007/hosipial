@@ -372,7 +372,8 @@ export const api = {
   // Asset Management API Client
   getAssets: async () => {
     const res = await fetch(`${API_BASE}/assets`);
-    return res.json();
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
   },
   createAsset: async (data: any) => {
     const res = await fetch(`${API_BASE}/assets`, {
@@ -400,7 +401,8 @@ export const api = {
   // ─── SYSTEM USERS (RBAC) ──────────────────────────────────────────
   getSystemUsers: async () => {
     const res = await fetch(`${API_BASE}/users`);
-    return res.json();
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
   },
   createSystemUser: async (u: any) => {
     const res = await fetch(`${API_BASE}/users`, {
@@ -426,7 +428,8 @@ export const api = {
   // ─── DIET & NUTRITION ─────────────────────────────────────────────
   getDietPlans: async () => {
     const res = await fetch(`${API_BASE}/diet`);
-    return res.json();
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
   },
   createDietPlan: async (d: any) => {
     const res = await fetch(`${API_BASE}/diet`, {
@@ -452,7 +455,8 @@ export const api = {
   // ─── HOUSEKEEPING ─────────────────────────────────────────────────
   getHousekeepingTasks: async () => {
     const res = await fetch(`${API_BASE}/housekeeping`);
-    return res.json();
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
   },
   createHousekeepingTask: async (t: any) => {
     const res = await fetch(`${API_BASE}/housekeeping`, {
@@ -478,7 +482,8 @@ export const api = {
   // ─── MEDICAL RECORDS ──────────────────────────────────────────────
   getMedicalRecords: async () => {
     const res = await fetch(`${API_BASE}/mrd`);
-    return res.json();
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
   },
   createMedicalRecord: async (r: any) => {
     const res = await fetch(`${API_BASE}/mrd`, {
@@ -500,7 +505,8 @@ export const api = {
   // ─── CRM ──────────────────────────────────────────────────────────
   getCRMEntries: async () => {
     const res = await fetch(`${API_BASE}/crm`);
-    return res.json();
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
   },
   createCRMEntry: async (c: any) => {
     const res = await fetch(`${API_BASE}/crm`, {
@@ -526,7 +532,8 @@ export const api = {
   // ─── COMPLIANCE ───────────────────────────────────────────────────
   getComplianceItems: async () => {
     const res = await fetch(`${API_BASE}/compliance`);
-    return res.json();
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
   },
   createComplianceItem: async (c: any) => {
     const res = await fetch(`${API_BASE}/compliance`, {
