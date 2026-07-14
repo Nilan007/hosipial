@@ -62,6 +62,17 @@ const SuperModule: React.FC = () => {
   const [newAssetWorth, setNewAssetWorth] = useState(100000);
   const [newAssetPurchaseDate, setNewAssetPurchaseDate] = useState('');
   const [newAssetMaintenanceNotes, setNewAssetMaintenanceNotes] = useState('');
+  const [editLastService, setEditLastService] = useState('');
+  const [editNextService, setEditNextService] = useState('');
+  const [editNotes, setEditNotes] = useState('');
+
+  useEffect(() => {
+    if (selectedAsset) {
+      setEditLastService(selectedAsset.lastServiceDate || '');
+      setEditNextService(selectedAsset.nextServiceDate || '');
+      setEditNotes(selectedAsset.maintenanceNotes || '');
+    }
+  }, [selectedAsset]);
 
   // Diet & Nutrition States
   const [dietPlans, setDietPlans] = useState<any[]>([]);
@@ -694,6 +705,25 @@ const SuperModule: React.FC = () => {
       }
     } catch (err) {
       toast.error('Failed to update asset status');
+    }
+  };
+
+  const handleUpdateServiceHistory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedAsset) return;
+    try {
+      const updated = await api.updateAsset(selectedAsset.id, {
+        lastServiceDate: editLastService,
+        nextServiceDate: editNextService,
+        maintenanceNotes: editNotes
+      });
+      toast.success('Asset calibration & service records updated!');
+      // Reload
+      const aList = await api.getAssets();
+      setAssetsList(aList);
+      setSelectedAsset(updated);
+    } catch (err) {
+      toast.error('Failed to save service records');
     }
   };
 
@@ -3241,8 +3271,8 @@ const SuperModule: React.FC = () => {
           ))}
         </div>
 
-        {/* ── MAIN LAYOUT: TABLE + DETAIL PANEL ──────────── */}
-        <div style={{ display: 'grid', gridTemplateColumns: selectedAsset ? '1.6fr 1fr' : '1fr', gap: 20, alignItems: 'start' }}>
+        {/* ── MAIN LAYOUT: FULL-WIDTH TABLE ──────────── */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 20, alignItems: 'start' }}>
 
           {/* Assets Table */}
           <div className="card" style={{ padding: 0, overflow: 'hidden', borderRadius: 16 }}>
@@ -3257,7 +3287,7 @@ const SuperModule: React.FC = () => {
                   {assetsList.length} entries
                 </span>
               </div>
-              <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>Click any row to view full service profile</div>
+              <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>Click any row to open the double-sided service profile pop-up</div>
             </div>
 
             <div style={{ overflowX: 'auto' }}>
@@ -3354,34 +3384,44 @@ const SuperModule: React.FC = () => {
               </table>
             </div>
           </div>
+        </div>
 
-          {/* Detail Panel */}
-          {selectedAsset && (
-            <div className="card" style={{
-              padding: 0, borderRadius: 16, overflow: 'hidden',
-              border: '2px solid rgba(99,102,241,0.25)',
-              boxShadow: '0 8px 32px rgba(99,102,241,0.12)'
+        {/* ── DOUBLE-SIDED WIDE POP-UP MODAL (ASSET DETAIL & CALIBRATION REPORT) ── */}
+        {selectedAsset && (
+          <div
+            style={{
+              position: 'fixed', inset: 0, zIndex: 1200,
+              background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(8px)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20
+            }}
+            onClick={e => { if (e.target === e.currentTarget) setSelectedAsset(null); }}
+          >
+            <div style={{
+              background: 'var(--color-bg-primary)',
+              borderRadius: 24, overflow: 'hidden', width: '100%', maxWidth: 960,
+              boxShadow: '0 30px 90px rgba(0,0,0,0.5)',
+              border: '1.5px solid rgba(99,102,241,0.2)'
             }}>
-              {/* Panel header */}
+              {/* Modal Header */}
               <div style={{
                 background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                padding: '18px 20px'
+                padding: '22px 28px'
               }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                     <div style={{
-                      width: 44, height: 44, borderRadius: 12,
-                      background: 'rgba(255,255,255,0.2)',
+                      width: 48, height: 48, borderRadius: 12,
+                      background: 'rgba(255,255,255,0.18)',
                       border: '1.5px solid rgba(255,255,255,0.3)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       flexShrink: 0
                     }}>
-                      <Cpu size={20} color="#fff" />
+                      <Cpu size={22} color="#fff" />
                     </div>
                     <div>
-                      <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.7)', fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase' }}>SERVICE PROFILE</div>
-                      <div style={{ fontSize: 15, fontWeight: 900, color: '#fff', marginTop: 2, lineHeight: 1.2 }}>{selectedAsset.name}</div>
-                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)', marginTop: 3, fontFamily: 'monospace' }}>{selectedAsset.id} · SN: {selectedAsset.serialNumber}</div>
+                      <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.75)', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase' }}>CLINICAL MACHINE PROFILE &amp; CALIBRATION LOG</div>
+                      <div style={{ fontSize: 17, fontWeight: 900, color: '#fff', marginTop: 2, lineHeight: 1.2 }}>{selectedAsset.name}</div>
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)', marginTop: 3, fontFamily: 'monospace' }}>Device Ref: {selectedAsset.id} · SN: {selectedAsset.serialNumber}</div>
                     </div>
                   </div>
                   <button
@@ -3389,121 +3429,211 @@ const SuperModule: React.FC = () => {
                     style={{
                       background: 'rgba(255,255,255,0.15)',
                       border: '1px solid rgba(255,255,255,0.25)',
-                      borderRadius: 8, width: 28, height: 28,
+                      borderRadius: 8, width: 32, height: 32,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      cursor: 'pointer', color: '#fff', flexShrink: 0
+                      cursor: 'pointer', color: '#fff', transition: 'all 0.15s'
                     }}
                   >
-                    <X size={14} />
+                    <X size={16} />
                   </button>
                 </div>
               </div>
 
-              {/* Panel body */}
-              <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {/* Modal Body: Double Sided Grid (Left & Right details) */}
+              <div style={{ padding: 28, display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: 28, maxHeight: '80vh', overflowY: 'auto' }}>
+                
+                {/* ────────────────── LEFT SIDE: GENERAL & SERVICE PROFILE ────────────────── */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: '#6366f1', letterSpacing: '0.04em', textTransform: 'uppercase', borderBottom: '1.5px solid var(--color-border)', paddingBottom: 6 }}>
+                    I. Device Specifications
+                  </div>
 
-                {/* Meta info grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  {[
-                    { label: 'Department', value: selectedAsset.department },
-                    { label: 'Category', value: selectedAsset.category },
-                    { label: 'Responsible Handler', value: selectedAsset.responsiblePerson },
-                    { label: 'Purchase Date', value: selectedAsset.purchaseDate || 'N/A' }
-                  ].map(f => (
-                    <div key={f.label} style={{
-                      background: 'var(--color-bg-secondary)',
-                      borderRadius: 10, padding: '10px 12px'
+                  {/* Metadata fields */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    {[
+                      { label: 'Category / Class', value: selectedAsset.category },
+                      { label: 'Installed Department', value: selectedAsset.department },
+                      { label: 'Responsible Handler', value: selectedAsset.responsiblePerson },
+                      { label: 'Purchase Date', value: selectedAsset.purchaseDate || '—' }
+                    ].map(f => (
+                      <div key={f.label} style={{
+                        background: 'var(--color-bg-secondary)',
+                        borderRadius: 12, padding: '12px 14px', border: '1px solid var(--color-border)'
+                      }}>
+                        <div style={{ fontSize: 9, fontWeight: 800, color: 'var(--color-text-muted)', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 4 }}>{f.label}</div>
+                        <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--color-text-primary)' }}>{f.value}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Worth Highlight */}
+                  <div style={{
+                    background: 'linear-gradient(135deg, rgba(16,185,129,0.08), rgba(16,185,129,0.03))',
+                    border: '1.5px solid rgba(16,185,129,0.25)',
+                    borderRadius: 14, padding: '16px 18px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+                  }}>
+                    <div>
+                      <div style={{ fontSize: 10, fontWeight: 800, color: '#10b981', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Equipment Purchase Capital Worth</div>
+                      <div style={{ fontSize: 26, fontWeight: 900, color: '#10b981', marginTop: 3, display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                        ₹{(selectedAsset.worth || 0).toLocaleString('en-IN')}
+                        <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--color-text-muted)' }}>INR</span>
+                      </div>
+                    </div>
+                    <TrendingUp size={30} color="#10b981" strokeWidth={2.5} />
+                  </div>
+
+                  {/* Operational status toggle */}
+                  <div style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: 14, padding: 16 }}>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--color-text-secondary)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      <Settings size={12} color="#6366f1" /> Operational Status Dispatcher
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                      {(['Operational', 'Calibrating', 'Under Maintenance', 'Out of Order'] as const).map(st => {
+                        const active = selectedAsset.status === st;
+                        const sc2 = statusColor[st];
+                        const sb2 = statusBg[st];
+                        return (
+                          <button
+                            key={st}
+                            onClick={() => handleUpdateAssetStatus(selectedAsset.id, st)}
+                            style={{
+                              fontSize: 11, fontWeight: 700, padding: '10px 12px',
+                              borderRadius: 10, cursor: 'pointer',
+                              border: active ? `2px solid ${sc2}` : `1.5px solid ${sc2}20`,
+                              background: active ? sb2 : 'var(--color-bg-primary)',
+                              color: active ? sc2 : 'var(--color-text-muted)',
+                              transition: 'all 0.15s ease',
+                              display: 'flex', alignItems: 'center', gap: 6
+                            }}
+                          >
+                            <span style={{ width: 7, height: 7, borderRadius: '50%', background: sc2, display: 'inline-block', flexShrink: 0 }} />
+                            {st}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* ────────────────── RIGHT SIDE: CALIBRATION & SERVICE TIMELINE ────────────────── */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 20, borderLeft: '1.5px solid var(--color-border)', paddingLeft: 28 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: '#f59e0b', letterSpacing: '0.04em', textTransform: 'uppercase', borderBottom: '1.5px solid var(--color-border)', paddingBottom: 6 }}>
+                    II. Calibration &amp; Service Registry
+                  </div>
+
+                  {/* Calibration Schedules Grid */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div style={{
+                      background: 'rgba(99,102,241,0.05)',
+                      border: '1px solid rgba(99,102,241,0.15)',
+                      borderRadius: 12, padding: '12px 14px'
                     }}>
-                      <div style={{ fontSize: 9, fontWeight: 800, color: 'var(--color-text-muted)', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 4 }}>{f.label}</div>
-                      <div style={{ fontWeight: 700, fontSize: 12, color: 'var(--color-text-primary)' }}>{f.value}</div>
+                      <div style={{ fontSize: 9, fontWeight: 800, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Last Service Date</div>
+                      <div style={{ fontWeight: 800, fontSize: 13, fontFamily: 'monospace', color: 'var(--color-text-primary)' }}>
+                        {selectedAsset.lastServiceDate || '—'}
+                      </div>
                     </div>
-                  ))}
-                </div>
 
-                {/* Asset worth highlight */}
-                <div style={{
-                  background: 'linear-gradient(135deg, rgba(16,185,129,0.08), rgba(16,185,129,0.03))',
-                  border: '1px solid rgba(16,185,129,0.2)',
-                  borderRadius: 12, padding: '14px 16px',
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between'
-                }}>
-                  <div>
-                    <div style={{ fontSize: 10, fontWeight: 800, color: '#10b981', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Asset Net Worth</div>
-                    <div style={{ fontSize: 24, fontWeight: 900, color: '#10b981', lineHeight: 1.2, marginTop: 2 }}>
-                      ₹{(selectedAsset.worth || 0).toLocaleString('en-IN')}
+                    <div style={{
+                      background: 'rgba(245,158,11,0.05)',
+                      border: '1px solid rgba(245,158,11,0.2)',
+                      borderRadius: 12, padding: '12px 14px'
+                    }}>
+                      <div style={{ fontSize: 9, fontWeight: 800, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Next Calibration Due</div>
+                      <div style={{ fontWeight: 800, fontSize: 13, fontFamily: 'monospace', color: '#f59e0b' }}>
+                        {selectedAsset.nextServiceDate || '—'}
+                      </div>
                     </div>
                   </div>
-                  <TrendingUp size={28} color="#10b981" strokeWidth={2.5} />
+
+                  {/* Service History Timeline (Step by step history logs) */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Service &amp; Calibration Logs History</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: 14, padding: 16 }}>
+                      {/* Current entry */}
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', position: 'relative' }}>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#6366f1', marginTop: 4, flexShrink: 0 }} />
+                        <div>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-primary)' }}>Last Serviced ({selectedAsset.lastServiceDate || '—'})</div>
+                          <p style={{ margin: '3px 0 0 0', fontSize: 11, color: 'var(--color-text-secondary)', lineHeight: 1.4 }}>
+                            "{selectedAsset.maintenanceNotes || 'Asset in service condition.'}"
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {/* Secondary entry */}
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', borderTop: '1px solid var(--color-border)', paddingTop: 10 }}>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#f59e0b', marginTop: 4, flexShrink: 0 }} />
+                        <div>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-primary)' }}>Scheduled Calibration ({selectedAsset.nextServiceDate || '—'})</div>
+                          <p style={{ margin: '3px 0 0 0', fontSize: 11, color: 'var(--color-text-secondary)', lineHeight: 1.4 }}>
+                            System slated for preventive diagnostic maintenance and sensor alignment checks.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Initial Entry */}
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', borderTop: '1px solid var(--color-border)', paddingTop: 10 }}>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', marginTop: 4, flexShrink: 0 }} />
+                        <div>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-primary)' }}>Initial Registry Commissioning</div>
+                          <p style={{ margin: '3px 0 0 0', fontSize: 11, color: 'var(--color-text-secondary)', lineHeight: 1.4 }}>
+                            Device registered and certified under factory parameters.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Form: Record New Service Date and Calibration Details */}
+                  <form onSubmit={handleUpdateServiceHistory} style={{ display: 'flex', flexDirection: 'column', gap: 12, background: 'rgba(99,102,241,0.02)', border: '1.5px dashed rgba(99,102,241,0.25)', borderRadius: 14, padding: 14 }}>
+                    <span style={{ fontSize: 10, fontWeight: 800, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Record Maintenance / Recalibration</span>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                      <div className="form-group">
+                        <label className="form-label text-xxs" style={{ fontWeight: 600 }}>Last Serviced *</label>
+                        <input
+                          type="date"
+                          className="form-control"
+                          required
+                          value={editLastService}
+                          onChange={e => setEditLastService(e.target.value)}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label text-xxs" style={{ fontWeight: 600 }}>Next Calibration *</label>
+                        <input
+                          type="date"
+                          className="form-control"
+                          required
+                          value={editNextService}
+                          onChange={e => setEditNextService(e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label text-xxs" style={{ fontWeight: 600 }}>Calibration / Service Log Notes</label>
+                      <input
+                        className="form-control"
+                        required
+                        placeholder="Log detailed remarks here..."
+                        value={editNotes}
+                        onChange={e => setEditNotes(e.target.value)}
+                      />
+                    </div>
+
+                    <button type="submit" className="btn btn-primary w-full" style={{ justifyContent: 'center', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', border: 'none', padding: '8px 0', fontSize: 11 }}>
+                      Save Calibration Certificate
+                    </button>
+                  </form>
                 </div>
 
-                {/* Service timeline */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                  <div style={{
-                    background: 'rgba(99,102,241,0.06)',
-                    border: '1px solid rgba(99,102,241,0.15)',
-                    borderRadius: 10, padding: '10px 12px'
-                  }}>
-                    <div style={{ fontSize: 9, fontWeight: 800, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Last Serviced</div>
-                    <div style={{ fontWeight: 700, fontSize: 12, fontFamily: 'monospace' }}>{selectedAsset.lastServiceDate || '—'}</div>
-                  </div>
-                  <div style={{
-                    background: 'rgba(245,158,11,0.06)',
-                    border: '1px solid rgba(245,158,11,0.2)',
-                    borderRadius: 10, padding: '10px 12px'
-                  }}>
-                    <div style={{ fontSize: 9, fontWeight: 800, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Next Calibration Due</div>
-                    <div style={{ fontWeight: 700, fontSize: 12, fontFamily: 'monospace', color: '#f59e0b' }}>{selectedAsset.nextServiceDate || '—'}</div>
-                  </div>
-                </div>
-
-                {/* Status update controls */}
-                <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 14 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Settings size={13} /> Update Operational Status
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                    {(['Operational', 'Calibrating', 'Under Maintenance', 'Out of Order'] as const).map(st => {
-                      const active = selectedAsset.status === st;
-                      const sc2 = statusColor[st];
-                      const sb2 = statusBg[st];
-                      return (
-                        <button
-                          key={st}
-                          onClick={() => handleUpdateAssetStatus(selectedAsset.id, st)}
-                          style={{
-                            fontSize: 10, fontWeight: 700, padding: '8px 10px',
-                            borderRadius: 8, cursor: 'pointer',
-                            border: active ? `2px solid ${sc2}` : `1.5px solid ${sc2}30`,
-                            background: active ? sb2 : 'transparent',
-                            color: active ? sc2 : 'var(--color-text-muted)',
-                            transition: 'all 0.15s ease',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5
-                          }}
-                        >
-                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: sc2, display: 'inline-block', flexShrink: 0 }} />
-                          {st}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Maintenance notes */}
-                <div style={{
-                  background: 'var(--color-bg-secondary)',
-                  borderRadius: 12, padding: '12px 14px'
-                }}>
-                  <div style={{ fontSize: 9, fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <CalendarClock size={11} /> Calibration / Service Log Notes
-                  </div>
-                  <p style={{ margin: 0, fontSize: 12, color: 'var(--color-text-secondary)', lineHeight: 1.5, fontStyle: 'italic' }}>
-                    &ldquo;{selectedAsset.maintenanceNotes || 'No maintenance notes recorded.'}&rdquo;
-                  </p>
-                </div>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* ── REGISTER ASSET MODAL ─────────────────────── */}
         {showAddAssetModal && (
