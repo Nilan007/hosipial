@@ -440,92 +440,103 @@ interface VirtualStockRoomProps {
   onSelectLocation: (rack: string, shelf: string) => void;
 }
 
-const RACKS = [
-  { id: 'A', name: 'Analgesics & General (A)', color: 'var(--color-success)', transform: 'rotateY(55deg) translate3d(-240px, 0, -120px)' },
-  { id: 'B', name: 'Cardiology & Antihypertensive (B)', color: '#3b82f6', transform: 'rotateY(55deg) translate3d(-240px, 0, 140px)' },
-  { id: 'C', name: 'Antibiotics & Vials (C)', color: '#8b5cf6', transform: 'translate3d(0, -10px, -280px)' },
-  { id: 'D', name: 'Syrups & Drops (D)', color: '#eab308', transform: 'rotateY(-55deg) translate3d(240px, 0, 140px)' },
-  { id: 'E', name: 'Controlled Substances (E)', color: 'var(--color-primary)', transform: 'rotateY(-55deg) translate3d(240px, 0, -120px)' }
-];
-
 const VirtualStockRoom: React.FC<VirtualStockRoomProps> = ({ drugs, onSelectLocation }) => {
   const [animationMode, setAnimationMode] = useState<'Low' | 'Medium' | 'Full'>('Medium');
   const [searchText, setSearchText] = useState('');
-  const [selectedBox, setSelectedBox] = useState<{ rack: string; shelf: string; drug?: any } | null>(null);
-  const [rotationAngle, setRotationAngle] = useState(-18);
+  const [selectedBox, setSelectedBox] = useState<{ number: number; drug?: any } | null>(null);
+  const [rotationAngle, setRotationAngle] = useState(-15);
 
   useEffect(() => {
     if (animationMode !== 'Full') return;
     const interval = setInterval(() => {
       setRotationAngle(prev => {
         const next = prev + 0.12;
-        return next > 10 ? -25 : next; // gentle drift back and forth
+        return next > 8 ? -25 : next;
       });
-    }, 20);
+    }, 25);
     return () => clearInterval(interval);
   }, [animationMode]);
 
-  const getDrugForLocation = (rackId: string, idx: number) => {
-    const locStr = `R-${rackId}-${String(idx).padStart(2, '0')}`;
-    return drugs.find(d => d.location === locStr);
+  const getDrugForBin = (binNumber: number) => {
+    return drugs.find(d => {
+      if (!d.location) return false;
+      if (d.location === `Bin-${binNumber}`) return true;
+      const match = d.location.match(/^R-([A-E])-(\d+)$/);
+      if (match) {
+        const r = match[1];
+        const s = parseInt(match[2]);
+        const offsets: Record<string, number> = { 'A': 0, 'B': 40, 'C': 80, 'D': 120, 'E': 160 };
+        const offset = offsets[r] ?? 0;
+        return offset + s === binNumber;
+      }
+      return false;
+    });
   };
 
-  const handleBoxClick = (rackId: string, idx: number, drug: any) => {
-    const shelfStr = String(idx).padStart(2, '0');
-    setSelectedBox({ rack: rackId, shelf: shelfStr, drug });
+  const handleBoxClick = (binNumber: number) => {
+    const drug = getDrugForBin(binNumber);
+    setSelectedBox({ number: binNumber, drug });
   };
+
+  // Helper arrays for grid rendering
+  // Left side: 1 to 100. Right side: 101 to 200.
+  // 10 rows (lines), 10 columns per row.
+  const leftRows = Array.from({ length: 10 }, (_, rowIdx) => 
+    Array.from({ length: 10 }, (_, colIdx) => rowIdx * 10 + colIdx + 1)
+  );
+
+  const rightRows = Array.from({ length: 10 }, (_, rowIdx) => 
+    Array.from({ length: 10 }, (_, colIdx) => 100 + rowIdx * 10 + colIdx + 1)
+  );
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* CSS Keyframe Injector for smooth 3D warehouse walking camera */}
+      {/* CSS Styles for walkthrough motion and animations */}
       <style>{`
-        @keyframes walkThrough {
-          0% { transform: rotateX(14deg) rotateY(-18deg) translateZ(-60px) translateX(-20px); }
-          50% { transform: rotateX(17deg) rotateY(-10deg) translateZ(-160px) translateX(20px); }
-          100% { transform: rotateX(14deg) rotateY(-18deg) translateZ(-60px) translateX(-20px); }
+        @keyframes walkThroughCorridor {
+          0% { transform: rotateX(15deg) rotateY(-18deg) translateZ(-60px) translateX(-15px); }
+          50% { transform: rotateX(18deg) rotateY(-8deg) translateZ(-140px) translateX(15px); }
+          100% { transform: rotateX(15deg) rotateY(-18deg) translateZ(-60px) translateX(-15px); }
         }
-        .animate-walkthrough {
-          animation: walkThrough 10s infinite ease-in-out;
+        .animate-walkthrough-corridor {
+          animation: walkThroughCorridor 12s infinite ease-in-out;
         }
-        @keyframes pulse {
-          0% { opacity: 0.3; }
-          50% { opacity: 1; }
-          100% { opacity: 0.3; }
+        @keyframes alertPulse {
+          0% { box-shadow: 0 0 4px rgba(239, 68, 68, 0.4); }
+          50% { box-shadow: 0 0 16px rgba(239, 68, 68, 0.9); }
+          100% { box-shadow: 0 0 4px rgba(239, 68, 68, 0.4); }
         }
-        @keyframes wave {
-          0% { transform: translateX(0) translateZ(0) scaleY(1); }
-          50% { transform: translateX(-25%) translateZ(0) scaleY(1.08); }
-          100% { transform: translateX(-50%) translateZ(0) scaleY(1); }
+        .pulse-low-stock {
+          animation: alertPulse 1.5s infinite;
         }
       `}</style>
 
       {/* Control Panel Card */}
       <div className="card" style={{ padding: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 16, justifyContent: 'space-between' }}>
           <div>
             <h3 className="card-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{
                 width: 32, height: 32, borderRadius: 8,
-                background: 'var(--gradient-primary)',
+                background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 4px 12px var(--color-primary-glow)'
+                boxShadow: '0 4px 12px rgba(59,130,246,0.3)'
               }}>
                 <Landmark size={16} color="white" />
               </span>
-              <span className="gradient-text">3D Virtual Pharmacy Warehouse Room</span>
+              <span className="gradient-text">3D Virtual Pharmacy Stock Room</span>
             </h3>
             <p className="card-subtitle" style={{ margin: '4px 0 0' }}>
-              Simulates exactly <strong>200 warded drawer bins</strong> across 5 upright steel rack systems warded in warehouse configuration.
+              Simulates exactly <strong>200 warded drawer bins</strong> (Left Side: 1-100, Right Side: 101-200) across 10 lines.
             </p>
           </div>
 
-          {/* Search & Animation Settings */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
             {/* Search */}
             <div className="search-bar" style={{ maxWidth: 220, height: 34 }}>
               <Search size={14} color="var(--color-text-muted)" />
               <input
-                placeholder="Search drug location..."
+                placeholder="Search drug or box #..."
                 value={searchText}
                 onChange={e => setSearchText(e.target.value)}
                 style={{ fontSize: 12 }}
@@ -542,18 +553,18 @@ const VirtualStockRoom: React.FC<VirtualStockRoomProps> = ({ drugs, onSelectLoca
                     key={mode}
                     onClick={() => {
                       setAnimationMode(mode);
-                      if (mode === 'Full') setRotationAngle(-18);
+                      if (mode === 'Full') setRotationAngle(-15);
                     }}
                     style={{
                       fontSize: 10, fontWeight: 700,
                       padding: '4px 10px', borderRadius: 6, cursor: 'pointer',
                       border: 'none',
-                      background: active ? 'var(--gradient-primary)' : 'transparent',
+                      background: active ? 'linear-gradient(135deg, #3b82f6, #1d4ed8)' : 'transparent',
                       color: active ? '#fff' : 'var(--color-text-secondary)',
                       transition: 'all 0.15s ease'
                     }}
                   >
-                    {mode === 'Full' ? 'Walkthrough Mode' : mode}
+                    {mode === 'Full' ? '3D Walkthrough' : mode === 'Medium' ? '3D Isometric' : '2D Flat'}
                   </button>
                 );
               })}
@@ -562,41 +573,39 @@ const VirtualStockRoom: React.FC<VirtualStockRoomProps> = ({ drugs, onSelectLoca
         </div>
       </div>
 
-      {/* Main 3D Viewport layout */}
+      {/* Viewport & Info panel */}
       <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr', gap: 20, alignItems: 'stretch' }}>
         
-        {/* Viewport Box */}
+        {/* 3D Viewport */}
         <div className="card" style={{
-          height: 600,
-          background: 'radial-gradient(circle at center, #100f24 0%, #03020a 100%)',
+          height: 620,
+          background: 'radial-gradient(circle at center, #111827 0%, #030712 100%)',
           border: '1.5px solid var(--color-border)',
           borderRadius: 20,
           overflow: 'hidden',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          position: 'relative',
-          userSelect: 'none'
+          position: 'relative'
         }}>
-          {/* Virtual ceiling coordinates */}
+          {/* Metadata Overlay */}
           <div style={{ position: 'absolute', top: 16, left: 20, color: '#8589a1', fontSize: 10, fontFamily: 'monospace' }}>
-            3D WAREHOUSE · DYNAMIC CORRIDOR AISLE · CAMERA ROT: {Math.round(rotationAngle)}°
+            DYNAMIC 3D CORRIDOR AISLE · CAMERA ROTATION: {Math.round(rotationAngle)}°
           </div>
 
-          {/* Legend Strip */}
+          {/* Legend */}
           <div style={{ position: 'absolute', bottom: 16, left: 20, display: 'flex', gap: 12, fontSize: 10, color: '#9ca3af' }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#4b5563' }} /> Empty Slot
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.2)' }} /> Empty Box
             </span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--color-success)' }} /> Good Stock
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'rgba(34,197,94,0.4)', border: '1.5px solid #22c55e' }} /> Stable Stock
             </span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--color-primary)' }} /> Low Stock
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'rgba(239,68,68,0.4)', border: '1.5px solid #ef4444' }} /> Low Stock
             </span>
           </div>
 
-          {/* 3D Container Box */}
           <div style={{
             perspective: 1000,
             transformStyle: 'preserve-3d',
@@ -604,18 +613,16 @@ const VirtualStockRoom: React.FC<VirtualStockRoomProps> = ({ drugs, onSelectLoca
             alignItems: 'center',
             justifyContent: 'center',
             width: '100%',
-            height: '100%',
-            transition: 'all 0.4s ease'
+            height: '100%'
           }}>
-            {/* Rack corridor alignment layout */}
-            <div 
-              className={animationMode === 'Full' ? 'animate-walkthrough' : ''}
+            <div
+              className={animationMode === 'Full' ? 'animate-walkthrough-corridor' : ''}
               style={{
                 transformStyle: 'preserve-3d',
                 transform: animationMode === 'Full' 
                   ? undefined
                   : animationMode === 'Medium'
-                    ? `rotateX(14deg) rotateY(${rotationAngle}deg) translateZ(-60px)`
+                    ? `rotateX(15deg) rotateY(${rotationAngle}deg) translateZ(-60px)`
                     : 'none',
                 width: '100%',
                 height: '100%',
@@ -626,184 +633,161 @@ const VirtualStockRoom: React.FC<VirtualStockRoomProps> = ({ drugs, onSelectLoca
               }}
             >
               {/* Floor grid visualizer */}
+              {animationMode !== 'Low' && (
+                <div style={{
+                  position: 'absolute',
+                  width: 700,
+                  height: 700,
+                  background: 'repeating-linear-gradient(rgba(255,255,255,0.01) 0px, rgba(255,255,255,0.01) 40px, rgba(255,255,255,0.03) 40px, rgba(255,255,255,0.03) 42px), repeating-linear-gradient(90deg, rgba(255,255,255,0.01) 0px, rgba(255,255,255,0.01) 40px, rgba(255,255,255,0.03) 40px, rgba(255,255,255,0.03) 42px)',
+                  transform: 'rotateX(90deg) translateZ(-220px)',
+                  opacity: 0.8,
+                  borderRadius: 20
+                }} />
+              )}
+
+              {/* RACK LEFT SIDE (10 LINES x 10 BOXES = 100 BOXES) */}
               <div style={{
+                transformStyle: 'preserve-3d',
                 position: 'absolute',
-                width: 600,
-                height: 600,
-                background: 'repeating-linear-gradient(rgba(255,255,255,0.01) 0px, rgba(255,255,255,0.01) 40px, rgba(255,255,255,0.03) 40px, rgba(255,255,255,0.03) 42px), repeating-linear-gradient(90deg, rgba(255,255,255,0.01) 0px, rgba(255,255,255,0.01) 40px, rgba(255,255,255,0.03) 40px, rgba(255,255,255,0.03) 42px)',
-                transform: 'rotateX(90deg) translateZ(-200px)',
-                opacity: 0.75,
-                borderRadius: 20
-              }} />
+                transform: animationMode === 'Low'
+                  ? 'translateX(-190px)'
+                  : 'rotateY(75deg) translate3d(-180px, -20px, -60px)',
+                background: 'rgba(15, 23, 42, 0.95)',
+                borderLeft: '4px solid #475569',
+                borderRight: '4px solid #475569',
+                borderRadius: 8,
+                padding: '12px 10px',
+                width: 320,
+                height: 480,
+                display: 'flex',
+                flexDirection: 'column',
+                boxShadow: '0 30px 60px rgba(0,0,0,0.6)',
+                justifyContent: 'space-between'
+              }}>
+                <div style={{
+                  color: '#22c55e', fontWeight: 900, fontSize: 10,
+                  background: 'rgba(0,0,0,0.8)', border: '1.5px solid #22c55e',
+                  padding: '3px 10px', borderRadius: 6, textAlign: 'center',
+                  textShadow: '0 0 6px #22c55e', letterSpacing: '0.08em', marginBottom: 8
+                }}>
+                  LEFT WING · BOXES 1-100
+                </div>
 
-              {/* Ceiling light indicator */}
-              <div style={{
-                position: 'absolute',
-                width: 200,
-                height: 4,
-                background: 'rgba(239,68,68,0.8)',
-                boxShadow: '0 0 20px rgba(239,68,68,0.9)',
-                transform: 'translate3d(0, -240px, -100px)',
-                borderRadius: 2
-              }} />
-
-              {RACKS.map((rack) => {
-                return (
-                  <div
-                    key={rack.id}
-                    style={{
-                      transformStyle: 'preserve-3d',
-                      position: 'absolute',
-                      transform: rack.transform,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      background: 'rgba(9, 9, 11, 0.94)',
-                      // Metallic frame style
-                      borderLeft: '5px solid #a1a1aa',
-                      borderRight: '5px solid #a1a1aa',
-                      boxShadow: '0 35px 70px rgba(0,0,0,0.8), inset 0 0 20px rgba(255,255,255,0.05)',
-                      borderRadius: 6,
-                      padding: '16px 10px',
-                      width: 200,
-                      height: 480,
-                      justifyContent: 'space-between'
-                    }}
-                  >
-                    {/* Rack Wing Label */}
-                    <div style={{
-                      color: '#ffffff',
-                      fontWeight: 900,
-                      fontSize: 11,
-                      background: 'rgba(0,0,0,0.85)',
-                      border: `2px solid ${rack.color}`,
-                      padding: '4px 12px',
-                      borderRadius: 8,
-                      textShadow: `0 0 6px ${rack.color}`,
-                      boxShadow: `0 0 12px ${rack.color}a0`,
-                      marginBottom: 12,
-                      whiteSpace: 'nowrap',
-                      letterSpacing: '0.06em'
-                    }}>
-                      WING {rack.id}
-                    </div>
-
-                    {/* 5x8 Grid of 40 Boxes representing real cabinet shelves */}
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(5, 1fr)',
-                      gap: 8,
-                      width: '100%',
-                      transformStyle: 'preserve-3d',
-                      flex: 1,
-                      alignContent: 'center',
-                      // horizontal shelves visual separator
-                      background: 'repeating-linear-gradient(rgba(255,255,255,0.06) 0px, rgba(255,255,255,0.06) 46px, rgba(161,161,170,0.8) 46px, rgba(161,161,170,0.8) 49px)'
-                    }}>
-                      {Array.from({ length: 40 }, (_, idx) => {
-                        const boxNo = idx + 1;
-                        const drug = getDrugForLocation(rack.id, boxNo);
+                <div style={{
+                  display: 'grid', gridTemplateRows: 'repeat(10, 1fr)', gap: 5, flex: 1,
+                  background: 'repeating-linear-gradient(rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 36px, rgba(71,85,105,0.6) 36px, rgba(71,85,105,0.6) 38px)'
+                }}>
+                  {leftRows.map((row, rowIdx) => (
+                    <div key={rowIdx} style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: 4 }}>
+                      {row.map(binNum => {
+                        const drug = getDrugForBin(binNum);
                         const isLow = drug && drug.stock < drug.minStock;
-                        const locationId = `R-${rack.id}-${String(boxNo).padStart(2, '0')}`;
-                        
-                        // Check if searched
-                        const isSearchMatch = searchText && drug &&
-                          drug.name.toLowerCase().includes(searchText.toLowerCase());
-
-                        // Selected state
-                        const isBoxSelected = selectedBox &&
-                          selectedBox.rack === rack.id &&
-                          selectedBox.shelf === String(boxNo).padStart(2, '0');
+                        const isSearchMatch = searchText && (
+                          binNum.toString() === searchText ||
+                          (drug && drug.name.toLowerCase().includes(searchText.toLowerCase()))
+                        );
+                        const isBoxSelected = selectedBox?.number === binNum;
 
                         return (
                           <div
-                            key={boxNo}
-                            onClick={() => handleBoxClick(rack.id, boxNo, drug)}
+                            key={binNum}
+                            onClick={() => handleBoxClick(binNum)}
+                            className={isLow ? 'pulse-low-stock' : ''}
                             style={{
-                              width: 28,
-                              height: 42, // taller drawer-like bins
-                              borderRadius: 4,
-                              cursor: 'pointer',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              position: 'relative',
-                              transformStyle: 'preserve-3d',
-                              // drawer colors
-                              background: isBoxSelected
-                                ? 'rgba(59,130,246,0.85)'
-                                : drug
-                                  ? isLow ? 'rgba(239,68,68,0.35)' : 'rgba(34,197,94,0.35)'
-                                  : 'rgba(255,255,255,0.08)',
-                              border: isSearchMatch
-                                ? '2px solid #eab308'
-                                : isBoxSelected
-                                  ? '2px solid white'
-                                  : drug
-                                    ? isLow ? '1.5px solid var(--color-primary)' : '1.5px solid var(--color-success)'
-                                    : '1.5px dashed rgba(255,255,255,0.2)',
-                              boxShadow: isSearchMatch
-                                ? '0 0 15px #eab308'
-                                : isBoxSelected
-                                  ? '0 0 15px rgba(59,130,246,1)'
-                                  : 'inset 0 1px 4px rgba(255,255,255,0.15)',
-                              transform: animationMode !== 'Low' && isBoxSelected
-                                ? 'translateZ(15px) scale(1.15)'
-                                : 'translateZ(0px)',
-                              transition: 'all 0.15s ease',
-                              padding: '4px 0'
+                              borderRadius: 3, cursor: 'pointer', display: 'flex', flexDirection: 'column',
+                              alignItems: 'center', justifyContent: 'center', position: 'relative',
+                              background: isBoxSelected ? 'rgba(59,130,246,0.85)' : drug ? isLow ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.06)',
+                              border: isSearchMatch ? '1.5px solid #eab308' : isBoxSelected ? '1.5px solid #fff' : drug ? isLow ? '1px solid #ef4444' : '1px solid #22c55e' : '1px dashed rgba(255,255,255,0.15)',
+                              boxShadow: isSearchMatch ? '0 0 8px #eab308' : 'none',
+                              transform: animationMode !== 'Low' && isBoxSelected ? 'translateZ(10px) scale(1.1)' : 'translateZ(0px)',
+                              transition: 'all 0.15s ease', height: '100%'
                             }}
-                            onMouseEnter={e => {
-                              if (animationMode !== 'Low') {
-                                e.currentTarget.style.transform = 'translateZ(10px) scale(1.1)';
-                              }
-                            }}
-                            onMouseLeave={e => {
-                              if (animationMode !== 'Low' && !isBoxSelected) {
-                                e.currentTarget.style.transform = 'translateZ(0px) scale(1)';
-                              }
-                            }}
-                            title={locationId}
                           >
-                            {/* Little drawer metallic pull handle */}
-                            <div style={{
-                              width: 14,
-                              height: 3,
-                              background: '#f4f4f5',
-                              border: '1px solid #71717a',
-                              borderRadius: 1.5,
-                              opacity: 0.95
-                            }} />
-
-                            {/* Inner dot */}
-                            <span style={{
-                              width: 4,
-                              height: 4,
-                              borderRadius: '50%',
-                              background: drug
-                                ? isLow ? 'var(--color-primary)' : 'var(--color-success)'
-                                : 'rgba(255,255,255,0.2)',
-                              animation: isLow ? 'pulse 1.2s infinite' : 'none'
-                            }} />
-
-                            {/* Glow ring for search match */}
-                            {isSearchMatch && (
-                              <span style={{
-                                position: 'absolute',
-                                inset: -2,
-                                borderRadius: 4,
-                                border: '1.5px solid #eab308',
-                                animation: 'pulse 1s infinite'
-                              }} />
+                            <span style={{ fontSize: 7, fontWeight: 900, color: isBoxSelected ? '#fff' : 'rgba(255,255,255,0.5)', fontFamily: 'monospace' }}>
+                              {binNum}
+                            </span>
+                            {drug && (
+                              <span style={{ width: 3, height: 3, borderRadius: '50%', background: isLow ? '#ef4444' : '#22c55e', marginTop: 1 }} />
                             )}
                           </div>
                         );
                       })}
                     </div>
-                  </div>
-                );
-              })}
+                  ))}
+                </div>
+              </div>
+
+              {/* RACK RIGHT SIDE (10 LINES x 10 BOXES = 100 BOXES) */}
+              <div style={{
+                transformStyle: 'preserve-3d',
+                position: 'absolute',
+                transform: animationMode === 'Low'
+                  ? 'translateX(190px)'
+                  : 'rotateY(-75deg) translate3d(180px, -20px, -60px)',
+                background: 'rgba(15, 23, 42, 0.95)',
+                borderLeft: '4px solid #475569',
+                borderRight: '4px solid #475569',
+                borderRadius: 8,
+                padding: '12px 10px',
+                width: 320,
+                height: 480,
+                display: 'flex',
+                flexDirection: 'column',
+                boxShadow: '0 30px 60px rgba(0,0,0,0.6)',
+                justifyContent: 'space-between'
+              }}>
+                <div style={{
+                  color: '#3b82f6', fontWeight: 900, fontSize: 10,
+                  background: 'rgba(0,0,0,0.8)', border: '1.5px solid #3b82f6',
+                  padding: '3px 10px', borderRadius: 6, textAlign: 'center',
+                  textShadow: '0 0 6px #3b82f6', letterSpacing: '0.08em', marginBottom: 8
+                }}>
+                  RIGHT WING · BOXES 101-200
+                </div>
+
+                <div style={{
+                  display: 'grid', gridTemplateRows: 'repeat(10, 1fr)', gap: 5, flex: 1,
+                  background: 'repeating-linear-gradient(rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 36px, rgba(71,85,105,0.6) 36px, rgba(71,85,105,0.6) 38px)'
+                }}>
+                  {rightRows.map((row, rowIdx) => (
+                    <div key={rowIdx} style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: 4 }}>
+                      {row.map(binNum => {
+                        const drug = getDrugForBin(binNum);
+                        const isLow = drug && drug.stock < drug.minStock;
+                        const isSearchMatch = searchText && (
+                          binNum.toString() === searchText ||
+                          (drug && drug.name.toLowerCase().includes(searchText.toLowerCase()))
+                        );
+                        const isBoxSelected = selectedBox?.number === binNum;
+
+                        return (
+                          <div
+                            key={binNum}
+                            onClick={() => handleBoxClick(binNum)}
+                            className={isLow ? 'pulse-low-stock' : ''}
+                            style={{
+                              borderRadius: 3, cursor: 'pointer', display: 'flex', flexDirection: 'column',
+                              alignItems: 'center', justifyContent: 'center', position: 'relative',
+                              background: isBoxSelected ? 'rgba(59,130,246,0.85)' : drug ? isLow ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.06)',
+                              border: isSearchMatch ? '1.5px solid #eab308' : isBoxSelected ? '1.5px solid #fff' : drug ? isLow ? '1px solid #ef4444' : '1px solid #22c55e' : '1px dashed rgba(255,255,255,0.15)',
+                              boxShadow: isSearchMatch ? '0 0 8px #eab308' : 'none',
+                              transform: animationMode !== 'Low' && isBoxSelected ? 'translateZ(10px) scale(1.1)' : 'translateZ(0px)',
+                              transition: 'all 0.15s ease', height: '100%'
+                            }}
+                          >
+                            <span style={{ fontSize: 7, fontWeight: 900, color: isBoxSelected ? '#fff' : 'rgba(255,255,255,0.5)', fontFamily: 'monospace' }}>
+                              {binNum}
+                            </span>
+                            {drug && (
+                              <span style={{ width: 3, height: 3, borderRadius: '50%', background: isLow ? '#ef4444' : '#22c55e', marginTop: 1 }} />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -816,10 +800,10 @@ const VirtualStockRoom: React.FC<VirtualStockRoomProps> = ({ drugs, onSelectLoca
               <div style={{ borderBottom: '1px solid var(--color-border)', paddingBottom: 12 }}>
                 <span style={{ fontSize: 9, color: 'var(--color-text-muted)', display: 'block', fontWeight: 700, letterSpacing: '0.06em' }}>SELECTED DRAWER BIN</span>
                 <h3 style={{ margin: '2px 0 0', fontWeight: 900, color: 'var(--color-primary)', fontSize: 18, fontFamily: 'monospace' }}>
-                  R-{selectedBox.rack}-{selectedBox.shelf}
+                  BOX-{selectedBox.number}
                 </h3>
                 <span className="badge badge-gray" style={{ fontSize: 10, marginTop: 4 }}>
-                  Wing {selectedBox.rack} · Level {selectedBox.shelf}
+                  {selectedBox.number <= 100 ? 'Left Side Wing' : 'Right Side Wing'} · Row {Math.floor((selectedBox.number - 1) % 100 / 10) + 1}
                 </span>
               </div>
 
@@ -850,14 +834,14 @@ const VirtualStockRoom: React.FC<VirtualStockRoomProps> = ({ drugs, onSelectLoca
                   </div>
 
                   <div style={{ background: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border)', borderRadius: 8, padding: 10, fontSize: 11, color: 'var(--color-text-muted)' }}>
-                    Storage Area: Wing {selectedBox.rack} is optimized for {RACKS.find(r => r.id === selectedBox.rack)?.name.split(' (')[0]}.
+                    Storage Placement: Cabinet Location Bin-{selectedBox.number}. Optimized for {selectedBox.number <= 100 ? 'Left-side Analgesics' : 'Right-side Cardio/Antibiotics'}.
                   </div>
                 </div>
               ) : (
                 <div style={{ textAlign: 'center', padding: '24px 10px', background: 'rgba(0,0,0,0.02)', borderRadius: 12, border: '1.5px dashed var(--color-border)' }}>
                   <Package size={26} color="var(--color-text-muted)" style={{ margin: '0 auto 8px' }} />
-                  <strong style={{ fontSize: 12, display: 'block', color: 'var(--color-text-secondary)', marginBottom: 4 }}>Empty Slot</strong>
-                  <p style={{ fontSize: 11, color: 'var(--color-text-muted)', margin: 0 }}>This drawer location is currently vacant. No medications assigned.</p>
+                  <strong style={{ fontSize: 12, display: 'block', color: 'var(--color-text-secondary)', marginBottom: 4 }}>Vacant Box</strong>
+                  <p style={{ fontSize: 11, color: 'var(--color-text-muted)', margin: 0 }}>This drawer location is currently empty. Ready for stock assignment.</p>
                 </div>
               )}
 
@@ -865,7 +849,7 @@ const VirtualStockRoom: React.FC<VirtualStockRoomProps> = ({ drugs, onSelectLoca
               <button
                 className="btn btn-primary w-full"
                 style={{ justifyContent: 'center', marginTop: 10 }}
-                onClick={() => onSelectLocation(selectedBox.rack, selectedBox.shelf)}
+                onClick={() => onSelectLocation(selectedBox.number <= 100 ? 'Left' : 'Right', selectedBox.number.toString())}
               >
                 <Plus size={14} style={{ marginRight: 6 }} /> Assign Stock Here
               </button>
@@ -874,7 +858,7 @@ const VirtualStockRoom: React.FC<VirtualStockRoomProps> = ({ drugs, onSelectLoca
             <div className="card" style={{ padding: 24, textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}>
               <Package size={36} color="var(--color-text-muted)" style={{ margin: '0 auto 12px' }} />
               <strong style={{ fontSize: 13, color: 'var(--color-text-secondary)', display: 'block', marginBottom: 4 }}>Inspect Storage Box</strong>
-              <p style={{ fontSize: 11, color: 'var(--color-text-muted)', margin: 0 }}>Click on any of the 200 virtual stock bins inside the 3D isometric room to view stored medications, safety stocks, or assign a new inventory product to that location.</p>
+              <p style={{ fontSize: 11, color: 'var(--color-text-muted)', margin: 0 }}>Click on any of the 200 boxes inside the virtual stock room to view stored medications or assign inventory here.</p>
             </div>
           )}
         </div>
@@ -915,14 +899,14 @@ const Pharmacy: React.FC = () => {
   const [stockMrp, setStockMrp] = useState(10);
   const [stockPurchaseRate, setStockPurchaseRate] = useState(6);
   const [stockUnit, setStockUnit] = useState('Strip');
-  const [stockRack, setStockRack] = useState('A');
-  const [stockShelf, setStockShelf] = useState('01');
+  const [stockRack, setStockRack] = useState('Left');
+  const [stockShelf, setStockShelf] = useState('1');
   const [stockControlled, setStockControlled] = useState(false);
 
   const handleAddStock = async (e: React.FormEvent) => {
     e.preventDefault();
     const stockId = `DRG-${Math.floor(100 + Math.random() * 900)}`;
-    const location = `R-${stockRack}-${stockShelf}`;
+    const location = `Bin-${stockShelf}`;
 
     const newStock = {
       id: stockId,
@@ -944,7 +928,7 @@ const Pharmacy: React.FC = () => {
 
     try {
       await api.createDrugInventory(newStock);
-      toast.success(`${stockName} added to Rack ${stockRack}, Shelf ${stockShelf}!`);
+      toast.success(`${stockName} added to Box Location ${stockShelf} (${stockRack} Side)!`);
       setShowAddStockModal(false);
       loadPharmacyData();
       // Reset form
@@ -1509,33 +1493,43 @@ const Pharmacy: React.FC = () => {
                   borderRadius: 12, padding: 14, marginBottom: 16
                 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-primary)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Landmark size={14} /> Storage Placement (Rack &amp; Shelf)
+                    <Landmark size={14} /> Storage Placement (200 Bins)
                   </div>
                   <div className="form-grid-2">
                     <div className="form-group">
-                      <label className="form-label text-xs">Assign Rack Wing</label>
+                      <label className="form-label text-xs">Aisle side</label>
                       <select
                         className="form-control"
                         value={stockRack}
-                        onChange={e => setStockRack(e.target.value)}
+                        onChange={e => {
+                          const side = e.target.value;
+                          setStockRack(side);
+                          if (side === 'Left') {
+                            setStockShelf('1');
+                          } else {
+                            setStockShelf('101');
+                          }
+                        }}
                       >
-                        <option value="A">Rack Wing A (Analgesics / General)</option>
-                        <option value="B">Rack Wing B (Antihypertensive / Cardio)</option>
-                        <option value="C">Rack Wing C (Antibiotics / Vials)</option>
-                        <option value="D">Rack Wing D (Syrups / Drops)</option>
-                        <option value="E">Rack Wing E (Controlled Substances)</option>
+                        <option value="Left">Left Side Aisle (Bins 1-100)</option>
+                        <option value="Right">Right Side Aisle (Bins 101-200)</option>
                       </select>
                     </div>
                     <div className="form-group">
-                      <label className="form-label text-xs">Shelf / Bin Level</label>
+                      <label className="form-label text-xs">Box Number</label>
                       <select
                         className="form-control"
                         value={stockShelf}
                         onChange={e => setStockShelf(e.target.value)}
                       >
-                        {Array.from({ length: 40 }, (_, i) => String(i + 1).padStart(2, '0')).map(lvl => (
-                          <option key={lvl} value={lvl}>Shelf Level {lvl}</option>
-                        ))}
+                        {stockRack === 'Left'
+                          ? Array.from({ length: 100 }, (_, i) => String(i + 1)).map(lvl => (
+                              <option key={lvl} value={lvl}>Box #{lvl} (Left Side)</option>
+                            ))
+                          : Array.from({ length: 100 }, (_, i) => String(101 + i)).map(lvl => (
+                              <option key={lvl} value={lvl}>Box #{lvl} (Right Side)</option>
+                            ))
+                        }
                       </select>
                     </div>
                   </div>

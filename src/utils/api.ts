@@ -554,6 +554,26 @@ export const api = {
   deleteComplianceItem: async (id: string) => {
     const res = await fetch(`${API_BASE}/compliance/${id}`, { method: 'DELETE' });
     return res.json();
+  },
+
+  // ─── INPATIENT DISCHARGE FEEDBACK API ──────────────────────────────────────
+  getDischargeFeedbacks: async () => {
+    const res = await fetch(`${API_BASE}/discharge-feedback`);
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  },
+  createDischargeFeedback: async (data: any) => {
+    const res = await fetch(`${API_BASE}/discharge-feedback`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    return res.json();
+  },
+  deleteDischargeFeedback: async (id: string) => {
+    const res = await fetch(`${API_BASE}/discharge-feedback/${id}`, { method: 'DELETE' });
+    return res.json();
   }
 };
+
 

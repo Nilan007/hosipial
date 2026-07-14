@@ -506,3 +506,21 @@ const ComplianceItemSchema = new mongoose.Schema({
   createdAt: { type: String, default: () => new Date().toISOString() }
 });
 export const ComplianceItem = mongoose.model('ComplianceItem', ComplianceItemSchema);
+
+// Inpatient Discharge Feedback Schema
+const DischargeFeedbackSchema = new mongoose.Schema({
+  id: { type: String, required: true, unique: true },
+  patientId: String,
+  patientName: String,
+  dischargeDate: String,
+  doctorRating: Number,
+  nurseRating: Number,
+  cleanlinessRating: Number,
+  foodRating: Number,
+  billingRating: Number,
+  recommend: String, // "Yes" / "No"
+  comments: String,
+  createdAt: { type: String, default: () => new Date().toISOString() }
+});
+export const DischargeFeedback = mongoose.model('DischargeFeedback', DischargeFeedbackSchema);
+

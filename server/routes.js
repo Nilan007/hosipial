@@ -13,7 +13,8 @@ import {
   HousekeepingTask,
   MedicalRecord,
   CRMEntry,
-  ComplianceItem
+  ComplianceItem,
+  DischargeFeedback
 } from './models.js';
 
 const router = express.Router();
@@ -1095,4 +1096,42 @@ router.delete('/compliance/:id', async (req, res) => {
   }
 });
 
+// ─── INPATIENT DISCHARGE FEEDBACK ROUTES ──────────────────────────────────
+router.get('/discharge-feedback', async (req, res) => {
+  try {
+    let data = await DischargeFeedback.find({}).sort({ createdAt: -1 });
+    if (data.length === 0) {
+      await DischargeFeedback.insertMany([
+        { id: 'FB-001', patientId: 'PT-001', patientName: 'Senthil Murugan', dischargeDate: '2026-07-14', doctorRating: 5, nurseRating: 4, cleanlinessRating: 5, foodRating: 4, billingRating: 5, recommend: 'Yes', comments: 'Superb care by Doctor Varma and the nursing staff. Discharge process was extremely quick and clear.' },
+        { id: 'FB-002', patientId: 'PT-002', patientName: 'Arun Patel', dischargeDate: '2026-07-12', doctorRating: 4, nurseRating: 5, cleanlinessRating: 4, foodRating: 3, billingRating: 4, recommend: 'Yes', comments: 'Overall good treatment. Food taste could be slightly improved but nutrition was perfect.' },
+        { id: 'FB-003', patientId: 'PT-003', patientName: 'Kavitha Nair', dischargeDate: '2026-07-10', doctorRating: 5, nurseRating: 5, cleanlinessRating: 5, foodRating: 5, billingRating: 3, recommend: 'Yes', comments: 'Highly satisfied with doctors and nurses. Insurance approval at billing took a bit longer than expected.' }
+      ]);
+      data = await DischargeFeedback.find({}).sort({ createdAt: -1 });
+    }
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching discharge feedbacks' });
+  }
+});
+
+router.post('/discharge-feedback', async (req, res) => {
+  try {
+    const f = new DischargeFeedback(req.body);
+    await f.save();
+    res.json(f);
+  } catch (err) {
+    res.status(500).json({ message: 'Error creating discharge feedback' });
+  }
+});
+
+router.delete('/discharge-feedback/:id', async (req, res) => {
+  try {
+    await DischargeFeedback.deleteOne({ id: req.params.id });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ message: 'Error deleting discharge feedback' });
+  }
+});
+
 export default router;
+
