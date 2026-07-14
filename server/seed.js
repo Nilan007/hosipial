@@ -2,7 +2,8 @@ import mongoose from 'mongoose';
 import {
   User, Patient, Appointment, Ward, Bed, Bill, LabTest,
   Prescription, DrugInventory, Staff, RadiologyScan, AuditLog,
-  Surgery, InsuranceClaim, Ambulance
+  Surgery, InsuranceClaim, Ambulance,
+  OutsideLab, OutsideReferral, OutsideLabInvoice
 } from './models.js';
 
 const MONGODB_URI = 'mongodb+srv://antig9992_db_user:JYWaeWx8TEr9dzw5@cluster0.qsz86jd.mongodb.net/hms?retryWrites=true&w=majority';
@@ -28,6 +29,9 @@ const seedData = async () => {
     await Surgery.deleteMany({});
     await InsuranceClaim.deleteMany({});
     await Ambulance.deleteMany({});
+    await OutsideLab.deleteMany({});
+    await OutsideReferral.deleteMany({});
+    await OutsideLabInvoice.deleteMany({});
 
     console.log('Collections cleared. Seeding datasets...');
 
@@ -46,13 +50,13 @@ const seedData = async () => {
 
     // Patients
     const pats = [
-      { id: 'MRN-10001', name: 'Rajesh Kumar', age: 45, gender: 'Male', dob: '1979-03-15', blood: 'B+', phone: '9876543210', email: 'rajesh.k@gmail.com', address: '12, Gandhi Nagar, Chennai', insurance: 'Star Health - SH78934', emergency: 'Priya Kumar', emergencyPhone: '9876543211', allergies: ['Penicillin'], chronic: ['Hypertension', 'Diabetes Type 2'], regDate: '2024-01-10', status: 'Active', lastVisit: '2026-06-28' },
-      { id: 'MRN-10002', name: 'Priya Sharma', age: 32, gender: 'Female', dob: '1992-07-22', blood: 'O+', phone: '9123456789', email: 'priya.s@gmail.com', address: '45, Anna Nagar, Chennai', insurance: 'HDFC Ergo - HE45621', emergency: 'Vikram Sharma', emergencyPhone: '9123456780', allergies: ['Sulfa'], chronic: ['Asthma'], regDate: '2024-02-18', status: 'Active', lastVisit: '2026-07-01' },
-      { id: 'MRN-10003', name: 'Mohammed Ali', age: 58, gender: 'Male', dob: '1966-11-05', blood: 'A-', phone: '9345678901', email: 'mali@yahoo.com', address: '7, T.Nagar, Chennai', insurance: 'New India Assurance', emergency: 'Fatima Ali', emergencyPhone: '9345678902', allergies: [], chronic: ['COPD', 'Heart Disease'], regDate: '2023-11-20', status: 'Admitted', lastVisit: '2026-07-04' },
-      { id: 'MRN-10004', name: 'Lakshmi Devi', age: 67, gender: 'Female', dob: '1957-05-30', blood: 'AB+', phone: '9567890123', email: 'lakshmi.d@gmail.com', address: '33, Velachery, Chennai', insurance: 'United India', emergency: 'Suresh Devi', emergencyPhone: '9567890124', allergies: ['Aspirin', 'Ibuprofen'], chronic: ['Arthritis', 'Osteoporosis'], regDate: '2023-08-05', status: 'Active', lastVisit: '2026-06-15' },
-      { id: 'MRN-10005', name: 'Arun Patel', age: 28, gender: 'Male', dob: '1996-12-12', blood: 'O-', phone: '9789012345', email: 'arun.p@gmail.com', address: '8, Adyar, Chennai', insurance: 'Bajaj Allianz', emergency: 'Meena Patel', emergencyPhone: '9789012346', allergies: [], chronic: [], regDate: '2025-01-08', status: 'Active', lastVisit: '2026-07-02' },
-      { id: 'MRN-10006', name: 'Kavitha Nair', age: 41, gender: 'Female', dob: '1983-08-25', blood: 'B-', phone: '9890123456', email: 'kavitha.n@gmail.com', address: '22, Porur, Chennai', insurance: 'Max Bupa', emergency: 'Nair Suresh', emergencyPhone: '9890123457', allergies: ['Latex'], chronic: ['Hypothyroidism'], regDate: '2024-05-12', status: 'Active', lastVisit: '2026-06-20' },
-      { id: 'MRN-10007', name: 'Senthil Murugan', age: 52, gender: 'Male', dob: '1972-02-18', blood: 'A+', phone: '9012345678', email: 'senthil.m@gmail.com', address: '15, Tambaram, Chennai', insurance: 'Oriental Insurance', emergency: 'Geetha Murugan', emergencyPhone: '9012345679', allergies: ['Morphine'], chronic: ['Diabetes Type 1', 'CKD'], regDate: '2023-06-30', status: 'Critical', lastVisit: '2026-07-05' },
+      { id: 'MRN-10001', name: 'Rajesh Kumar', age: 45, gender: 'Male', dob: '1979-03-15', blood: 'B+', phone: '9876543210', email: 'rajesh.k@gmail.com', address: '12, Gandhi Nagar, Chennai', insurance: 'Star Health - SH78934', emergency: 'Priya Kumar', emergencyPhone: '9876543211', allergies: ['Penicillin'], chronic: ['Hypertension', 'Diabetes Type 2'], regDate: '2024-01-10', status: 'Active', lastVisit: '2026-06-28', fasttrackSubscription: { status: 'Active', planName: 'VIP Fasttrack Pass', pricePaid: 999, startDate: '2026-07-01', endDate: '2026-08-01', priorityTier: 'High', autoRenew: true } },
+      { id: 'MRN-10002', name: 'Priya Sharma', age: 32, gender: 'Female', dob: '1992-07-22', blood: 'O+', phone: '9123456789', email: 'priya.s@gmail.com', address: '45, Anna Nagar, Chennai', insurance: 'HDFC Ergo - HE45621', emergency: 'Vikram Sharma', emergencyPhone: '9123456780', allergies: ['Sulfa'], chronic: ['Asthma'], regDate: '2024-02-18', status: 'Active', lastVisit: '2026-07-01', fasttrackSubscription: { status: 'Inactive', planName: '', pricePaid: 0, startDate: '', endDate: '', priorityTier: 'Normal', autoRenew: false } },
+      { id: 'MRN-10003', name: 'Mohammed Ali', age: 58, gender: 'Male', dob: '1966-11-05', blood: 'A-', phone: '9345678901', email: 'mali@yahoo.com', address: '7, T.Nagar, Chennai', insurance: 'New India Assurance', emergency: 'Fatima Ali', emergencyPhone: '9345678902', allergies: [], chronic: ['COPD', 'Heart Disease'], regDate: '2023-11-20', status: 'Admitted', lastVisit: '2026-07-04', fasttrackSubscription: { status: 'Inactive', planName: '', pricePaid: 0, startDate: '', endDate: '', priorityTier: 'Normal', autoRenew: false } },
+      { id: 'MRN-10004', name: 'Lakshmi Devi', age: 67, gender: 'Female', dob: '1957-05-30', blood: 'AB+', phone: '9567890123', email: 'lakshmi.d@gmail.com', address: '33, Velachery, Chennai', insurance: 'United India', emergency: 'Suresh Devi', emergencyPhone: '9567890124', allergies: ['Aspirin', 'Ibuprofen'], chronic: ['Arthritis', 'Osteoporosis'], regDate: '2023-08-05', status: 'Active', lastVisit: '2026-06-15', fasttrackSubscription: { status: 'Active', planName: 'VIP Fasttrack Pass', pricePaid: 999, startDate: '2026-07-05', endDate: '2026-08-05', priorityTier: 'High', autoRenew: false } },
+      { id: 'MRN-10005', name: 'Arun Patel', age: 28, gender: 'Male', dob: '1996-12-12', blood: 'O-', phone: '9789012345', email: 'arun.p@gmail.com', address: '8, Adyar, Chennai', insurance: 'Bajaj Allianz', emergency: 'Meena Patel', emergencyPhone: '9789012346', allergies: [], chronic: [], regDate: '2025-01-08', status: 'Active', lastVisit: '2026-07-02', fasttrackSubscription: { status: 'Inactive', planName: '', pricePaid: 0, startDate: '', endDate: '', priorityTier: 'Normal', autoRenew: false } },
+      { id: 'MRN-10006', name: 'Kavitha Nair', age: 41, gender: 'Female', dob: '1983-08-25', blood: 'B-', phone: '9890123456', email: 'kavitha.n@gmail.com', address: '22, Porur, Chennai', insurance: 'Max Bupa', emergency: 'Nair Suresh', emergencyPhone: '9890123457', allergies: ['Latex'], chronic: ['Hypothyroidism'], regDate: '2024-05-12', status: 'Active', lastVisit: '2026-06-20', fasttrackSubscription: { status: 'Inactive', planName: '', pricePaid: 0, startDate: '', endDate: '', priorityTier: 'Normal', autoRenew: false } },
+      { id: 'MRN-10007', name: 'Senthil Murugan', age: 52, gender: 'Male', dob: '1972-02-18', blood: 'A+', phone: '9012345678', email: 'senthil.m@gmail.com', address: '15, Tambaram, Chennai', insurance: 'Oriental Insurance', emergency: 'Geetha Murugan', emergencyPhone: '9012345679', allergies: ['Morphine'], chronic: ['Diabetes Type 1', 'CKD'], regDate: '2023-06-30', status: 'Critical', lastVisit: '2026-07-05', fasttrackSubscription: { status: 'Inactive', planName: '', pricePaid: 0, startDate: '', endDate: '', priorityTier: 'Normal', autoRenew: false } },
     ];
     await Patient.insertMany(pats);
 
@@ -150,6 +154,30 @@ const seedData = async () => {
       { id: 'AMB-002', regNo: 'TN-01-AB-5678', type: 'Basic Life Support', driver: 'Selvam K', phone: '9600000002', status: 'On Call', lat: 13.0752, lng: 80.2562 },
     ];
     await Ambulance.insertMany(amb);
+
+    // Outside Radiology Labs Seeding
+    const extLabs = [
+      { id: 'LAB-EXT-001', name: 'Apex Imaging Center', contactPerson: 'Dr. R. K. Swamy', phone: '9840123450', email: 'contact@apeximaging.com', address: '15, Mount Road, Chennai', commissionRate: 20, billingCycle: 'Weekly', status: 'Active' },
+      { id: 'LAB-EXT-002', name: 'Metro Radiology Lab', contactPerson: 'Sarah John', phone: '9840123451', email: 'info@metrorad.com', address: '88, Poonamallee High Road, Chennai', commissionRate: 15, billingCycle: '15 Days', status: 'Active' },
+      { id: 'LAB-EXT-003', name: 'Precision Scan Hub', contactPerson: 'Ganesh Murthy', phone: '9840123452', email: 'billing@precisionscans.com', address: '204, OMR IT Expressway, Chennai', commissionRate: 30, billingCycle: 'Monthly', status: 'Active' }
+    ];
+    await OutsideLab.insertMany(extLabs);
+
+    // Outside Referrals Seeding
+    const extReferrals = [
+      { id: 'REF-001', patientId: 'MRN-10002', patientName: 'Priya Sharma', labId: 'LAB-EXT-001', labName: 'Apex Imaging Center', scanType: 'Contrast MRI Spine', date: '2026-07-08', totalAmount: 8500, commissionRate: 20, commissionAmount: 1700, billingStatus: 'Pending', invoiceId: '' },
+      { id: 'REF-002', patientId: 'MRN-10005', patientName: 'Arun Patel', labId: 'LAB-EXT-001', labName: 'Apex Imaging Center', scanType: 'CT Abdomen', date: '2026-07-09', totalAmount: 6000, commissionRate: 20, commissionAmount: 1200, billingStatus: 'Pending', invoiceId: '' },
+      { id: 'REF-003', patientId: 'MRN-10006', patientName: 'Kavitha Nair', labId: 'LAB-EXT-002', labName: 'Metro Radiology Lab', scanType: 'HRCT Chest', date: '2026-07-02', totalAmount: 4500, commissionRate: 15, commissionAmount: 675, billingStatus: 'Invoiced', invoiceId: 'LINV-9001' },
+      { id: 'REF-004', patientId: 'MRN-10008', patientName: 'Deepa Krishnan', labId: 'LAB-EXT-003', labName: 'Precision Scan Hub', scanType: 'PET Scan Whole Body', date: '2026-06-18', totalAmount: 22000, commissionRate: 30, commissionAmount: 6600, billingStatus: 'Settled', invoiceId: 'LINV-8001' }
+    ];
+    await OutsideReferral.insertMany(extReferrals);
+
+    // Outside Lab Invoices Seeding
+    const extInvoices = [
+      { id: 'LINV-9001', labId: 'LAB-EXT-002', labName: 'Metro Radiology Lab', startDate: '2026-07-01', endDate: '2026-07-15', referralCount: 1, totalBillingValue: 4500, totalCommission: 675, billingCycle: '15 Days', dateGenerated: '2026-07-15', status: 'Unpaid' },
+      { id: 'LINV-8001', labId: 'LAB-EXT-003', labName: 'Precision Scan Hub', startDate: '2026-06-01', endDate: '2026-06-30', referralCount: 1, totalBillingValue: 22000, totalCommission: 6600, billingCycle: 'Monthly', dateGenerated: '2026-06-30', status: 'Paid', paymentDate: '2026-07-02' }
+    ];
+    await OutsideLabInvoice.insertMany(extInvoices);
 
     console.log('Database seeded successfully!');
     process.exit(0);

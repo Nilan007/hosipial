@@ -6,7 +6,7 @@ import {
   UtensilsCrossed, Wrench, FileText, MessageSquare, BarChart3,
   ClipboardList, Lock, ChevronLeft, ChevronRight, Cross, Activity,
   Building2, Syringe, TestTube, Scissors, CreditCard, Building,
-  Droplets, Ambulance, FileArchive, Star, BookOpen, ShieldCheck
+  Droplets, Ambulance, FileArchive, Star, BookOpen, ShieldCheck, Cpu
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -26,6 +26,7 @@ const navConfig = [
       { label: 'IPD', icon: Bed, path: '/ipd', badge: null },
       { label: 'Emergency', icon: Cross, path: '/emergency', badge: '3' },
       { label: 'EMR / EHR', icon: FileText, path: '/emr', badge: null },
+      { label: 'Fasttrack VIP', icon: Star, path: '/fasttrack', badge: 'VIP' },
     ],
   },
   {
@@ -44,6 +45,8 @@ const navConfig = [
     items: [
       { label: 'Billing', icon: Receipt, path: '/billing', badge: null },
       { label: 'Insurance & TPA', icon: Shield, path: '/insurance', badge: null },
+      { label: 'Outside Lab Comm', icon: Building, path: '/outside-labs', badge: null },
+      { label: 'Hospital Accounts', icon: CreditCard, path: '/accounting', badge: null },
     ],
   },
   {
@@ -52,6 +55,7 @@ const navConfig = [
       { label: 'Doctors', icon: Stethoscope, path: '/doctors', badge: null },
       { label: 'Staff & HR', icon: UserCog, path: '/staff', badge: null },
       { label: 'Inventory', icon: Package, path: '/inventory', badge: null },
+      { label: 'Asset Management', icon: Cpu, path: '/assets', badge: null },
     ],
   },
   {

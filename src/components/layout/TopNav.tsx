@@ -3,6 +3,7 @@ import { Menu, Search, Bell, Settings, LogOut, ChevronRight } from 'lucide-react
 import { useAuth } from '../../contexts/AuthContext';
 import { notifications } from '../../data/mockData';
 import { useLocation } from 'react-router-dom';
+import ThemeSwitcher from './ThemeSwitcher';
 
 const pathToLabel: Record<string, string> = {
   '/dashboard': 'Dashboard',
@@ -23,6 +24,7 @@ const pathToLabel: Record<string, string> = {
   '/doctors': 'Doctors',
   '/staff': 'Staff & HR',
   '/inventory': 'Inventory',
+  '/assets': 'Asset Management',
   '/bloodbank': 'Blood Bank',
   '/ambulance': 'Ambulance',
   '/diet': 'Diet & Nutrition',
@@ -86,6 +88,9 @@ const TopNav: React.FC<TopNavProps> = ({ onMenuToggle }) => {
       </div>
 
       <div className="topnav-actions">
+        {/* Theme Switcher */}
+        <ThemeSwitcher />
+
         {/* Notifications */}
         <div style={{ position: 'relative' }} ref={notifRef}>
           <button className="topnav-btn" onClick={() => { setShowNotifications(!showNotifications); setShowProfile(false); }}>

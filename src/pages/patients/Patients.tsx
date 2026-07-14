@@ -280,6 +280,11 @@ const Patients: React.FC = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <div className="avatar avatar-sm">{patient.name.split(' ').map((n: string) => n[0]).join('')}</div>
                       <span className="font-semibold text-primary">{patient.name}</span>
+                      {patient.fasttrackSubscription?.status === 'Active' && (
+                        <span className="badge badge-purple" style={{ padding: '2px 8px', fontSize: '9px', marginLeft: '6px' }} title="VIP Fasttrack Subscriber">
+                          <Sparkles size={8} style={{ marginRight: 2 }} /> VIP
+                        </span>
+                      )}
                     </div>
                   </td>
                   <td>{patient.age} Yrs / {patient.gender}</td>
@@ -411,7 +416,14 @@ const Patients: React.FC = () => {
                 <div className="card" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 16, background: 'var(--color-bg-secondary)', border: '1px solid var(--color-primary-glow)', padding: '16px' }}>
                   <div>
                     <div className="text-muted text-xs">PATIENT MRN</div>
-                    <div className="font-bold text-accent">{selectedPatient.id}</div>
+                    <div className="font-bold text-accent" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {selectedPatient.id}
+                      {selectedPatient.fasttrackSubscription?.status === 'Active' && (
+                        <span className="badge badge-purple" style={{ padding: '1px 5px', fontSize: '8px' }} title="Active VIP Fasttrack Pass">
+                          VIP
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <div className="text-muted text-xs">AGE & GENDER</div>
@@ -447,6 +459,15 @@ const Patients: React.FC = () => {
                     <>
                       {activeTab === 'Overview' && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                          {selectedPatient.fasttrackSubscription?.status === 'Active' && (
+                            <div className="card" style={{ border: '1px solid var(--color-purple)', background: 'rgba(139, 92, 246, 0.05)', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                              <Sparkles className="text-purple animated-pulse" size={24} style={{ marginTop: 2, flexShrink: 0 }} />
+                              <div>
+                                <h4 className="font-semibold text-white" style={{ fontSize: '13px' }}>Monthly Fasttrack VIP Pass Active</h4>
+                                <p className="text-secondary text-xs mt-xs">This patient has an active premium subscription valid from <strong className="text-white">{selectedPatient.fasttrackSubscription.startDate}</strong> to <strong className="text-white">{selectedPatient.fasttrackSubscription.endDate}</strong>. They receive top priority in Doctor Consultations, Laboratory tests, Radiology scans, and Pharmacy queues.</p>
+                              </div>
+                            </div>
+                          )}
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                             <div className="card">
                               <h3 className="card-title text-danger mb-sm" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

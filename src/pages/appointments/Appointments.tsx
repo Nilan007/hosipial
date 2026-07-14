@@ -1,31 +1,44 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Calendar, Search, Clock, Plus, Video, PhoneCall, Trash2, Edit, Check,
-  User, CheckCircle, RefreshCw, AlertCircle, Play, FileText
+  User, CheckCircle, RefreshCw, AlertCircle, Play, FileText, Sparkles
 } from 'lucide-react';
-import { doctors, patients } from '../../data/mockData';
+import { doctors } from '../../data/mockData';
 import { api } from '../../utils/api';
 import { exportTablePDF, exportToExcel } from '../../utils/exportUtils';
 
 const Appointments: React.FC = () => {
   const [aptList, setAptList] = useState<any[]>([]);
+  const [patientsList, setPatientsList] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('All');
   const [filterStatus, setFilterStatus] = useState('All');
   const [showBookModal, setShowBookModal] = useState(false);
 
   // New booking form states
-  const [selectedPatientId, setSelectedPatientId] = useState(patients[0]?.id || '');
+  const [selectedPatientId, setSelectedPatientId] = useState('');
   const [selectedDoctorId, setSelectedDoctorId] = useState(doctors[0]?.id || '');
   const [aptTime, setAptTime] = useState('10:00');
   const [aptDate, setAptDate] = useState('2026-07-07');
   const [aptType, setAptType] = useState('Online');
   const [aptNotes, setAptNotes] = useState('');
 
+  const getPatientSubscription = (patientId: string) => {
+    const p = patientsList.find((pat: any) => pat.id === patientId);
+    return p?.fasttrackSubscription?.status === 'Active';
+  };
+
   const loadAppointments = async () => {
     try {
-      const data = await api.getAppointments();
-      setAptList(data);
+      const [aptsData, patsData] = await Promise.all([
+        api.getAppointments(),
+        api.getPatients()
+      ]);
+      setAptList(aptsData);
+      setPatientsList(patsData);
+      if (patsData.length > 0 && !selectedPatientId) {
+        setSelectedPatientId(patsData[0].id);
+      }
     } catch (e) {
       console.error(e);
     }
@@ -38,7 +51,7 @@ const Appointments: React.FC = () => {
   const handleBook = async (e: React.FormEvent) => {
     e.preventDefault();
     const doc = doctors.find(d => d.id === selectedDoctorId);
-    const pat = patients.find(p => p.id === selectedPatientId);
+    const pat = patientsList.find((p: any) => p.id === selectedPatientId);
     const tokenNum = `T-${Math.floor(100 + Math.random() * 900)}`;
 
     const newApt = {
@@ -76,7 +89,7 @@ const Appointments: React.FC = () => {
   };
 
   const handleExportExcel = () => {
-    const list = aptList.map(a => ({
+    const list = aptList.map((a: any) => ({
       Token: a.token,
       'Apt ID': a.id,
       Patient: a.patientName,
@@ -91,7 +104,7 @@ const Appointments: React.FC = () => {
 
   const handleExportPDF = () => {
     const headers = ['Token', 'Apt ID', 'Patient', 'Doctor', 'Dept', 'Date/Time', 'Type', 'Status'];
-    const rows = aptList.map(a => [
+    const rows = aptList.map((a: any) => [
       a.token,
       a.id,
       a.patientName,
@@ -104,11 +117,20 @@ const Appointments: React.FC = () => {
     exportTablePDF('Hospital Appointments Ledger', headers, rows, 'appointments_report');
   };
 
-  const filtered = aptList.filter(a => {
+  const filtered = aptList.filter((a: any) => {
     const matchesSearch = a.patientName.toLowerCase().includes(searchTerm.toLowerCase()) || a.doctorName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === 'All' || a.type === filterType;
     const matchesStatus = filterStatus === 'All' || a.status === filterStatus;
     return matchesSearch && matchesType && matchesStatus;
+  });
+
+  const sortedAppointments = [...filtered].sort((a: any, b: any) => {
+    const aIsVip = getPatientSubscription(a.patientId);
+    const bIsVip = getPatientSubscription(b.patientId);
+    // Move VIP patients to the top of queues
+    if (aIsVip && !bIsVip) return -1;
+    if (!aIsVip && bIsVip) return 1;
+    return 0;
   });
 
   return (
@@ -205,11 +227,26 @@ const Appointments: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {filtered.map(apt => (
-                <tr key={apt.id}>
-                  <td><span className="badge badge-purple">{apt.token}</span></td>
-                  <td>{apt.id}</td>
-                  <td className="font-semibold text-primary">{apt.patientName}</td>
+              {sortedAppointments.map(apt => {
+                const isVip = getPatientSubscription(apt.patientId);
+                return (
+                  <tr key={apt.id} style={isVip ? { borderLeft: '4px solid var(--color-purple)', background: 'rgba(139, 92, 246, 0.02)' } : undefined}>
+                    <td>
+                      <div className="flex-align" style={{ gap: 6 }}>
+                        <span className={`badge badge-${isVip ? 'purple' : 'gray'}`}>{apt.token}</span>
+                      </div>
+                    </td>
+                    <td>{apt.id}</td>
+                    <td>
+                      <div className="flex-align" style={{ gap: 6 }}>
+                        <span className="font-semibold text-primary">{apt.patientName}</span>
+                        {isVip && (
+                          <span className="badge badge-purple" style={{ padding: '2px 6px', fontSize: '9px' }} title="VIP Fasttrack Patient">
+                            <Sparkles size={8} style={{ marginRight: 2 }} /> VIP
+                          </span>
+                        )}
+                      </div>
+                    </td>
                   <td>{apt.doctorName}</td>
                   <td>{apt.dept}</td>
                   <td>{apt.date} at <span className="text-primary">{apt.time}</span></td>
@@ -244,8 +281,9 @@ const Appointments: React.FC = () => {
                       </div>
                     )}
                   </td>
-                </tr>
-              ))}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -262,11 +300,16 @@ const Appointments: React.FC = () => {
             <form onSubmit={handleBook}>
               <div className="modal-body">
                 <div className="form-group mb-md">
-                  <label className="form-label">Select Patient Profile</label>
+                  <label className="form-label font-bold text-white">Select Patient Profile</label>
                   <select className="form-control" value={selectedPatientId} onChange={e => setSelectedPatientId(e.target.value)}>
-                    {patients.map(p => (
-                      <option key={p.id} value={p.id}>{p.name} ({p.id})</option>
-                    ))}
+                    {patientsList.map((p: any) => {
+                      const isVip = p.fasttrackSubscription?.status === 'Active';
+                      return (
+                        <option key={p.id} value={p.id}>
+                          {p.name} ({p.id}) {isVip ? '★ [VIP Fasttrack]' : ''}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
 
