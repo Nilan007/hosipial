@@ -227,22 +227,49 @@ const SuperModule: React.FC = () => {
   const [emrAppointments, setEmrAppointments] = useState<any[]>([]);
 
   const loadData = async () => {
-    try {
-      const s = await api.getStaff();
-      setLocalStaff(s);
-      const a = await api.getAmbulances();
-      setLocalAmbulances(a);
-      const c = await api.getClaims();
-      setLocalClaims(c);
-      const surg = await api.getSurgeries();
-      setLocalSurgeries(surg);
+    // 1. Staff
+    if (path === '/staff' || path === '/admin') {
+      try {
+        const s = await api.getStaff();
+        setLocalStaff(s);
+      } catch (e) { console.error('Error loading staff', e); }
+    }
 
-      // Load EMR Patients
-      const p = await api.getPatients();
-      setEmrPatients(p);
+    // 2. Ambulances
+    if (path === '/ambulance') {
+      try {
+        const a = await api.getAmbulances();
+        setLocalAmbulances(a);
+      } catch (e) { console.error('Error loading ambulances', e); }
+    }
 
-      // Load procurements & vendors
-      if (path === '/inventory') {
+    // 3. Claims
+    if (path === '/insurance') {
+      try {
+        const c = await api.getClaims();
+        setLocalClaims(c);
+      } catch (e) { console.error('Error loading claims', e); }
+    }
+
+    // 4. Surgeries
+    if (path === '/ot') {
+      try {
+        const surg = await api.getSurgeries();
+        setLocalSurgeries(surg);
+      } catch (e) { console.error('Error loading surgeries', e); }
+    }
+
+    // 5. Patients
+    if (path === '/emr') {
+      try {
+        const p = await api.getPatients();
+        setEmrPatients(p);
+      } catch (e) { console.error('Error loading patients', e); }
+    }
+
+    // 6. Inventory
+    if (path === '/inventory') {
+      try {
         const [po, v] = await Promise.all([
           api.getProcurements(),
           api.getVendors()
@@ -252,46 +279,55 @@ const SuperModule: React.FC = () => {
         if (v.length > 0 && !poVendorId) {
           setPoVendorId(v[0].name);
         }
-      }
+      } catch (e) { console.error('Error loading inventory', e); }
+    }
 
-      // Load Assets
-      if (path === '/assets') {
+    // 7. Assets
+    if (path === '/assets') {
+      try {
         const aList = await api.getAssets();
         setAssetsList(aList);
-      }
+      } catch (e) { console.error('Error loading assets', e); }
+    }
 
-      // Load Diet Plans
-      if (path === '/diet') {
+    // 8. Diet
+    if (path === '/diet') {
+      try {
         const d = await api.getDietPlans();
         setDietPlans(d);
-      }
+      } catch (e) { console.error('Error loading diet', e); }
+    }
 
-      // Load Housekeeping
-      if (path === '/housekeeping') {
+    // 9. Housekeeping
+    if (path === '/housekeeping') {
+      try {
         const hk = await api.getHousekeepingTasks();
         setHkTasks(hk);
-      }
+      } catch (e) { console.error('Error loading housekeeping', e); }
+    }
 
-      // Load Medical Records
-      if (path === '/mrd') {
+    // 10. Medical Records
+    if (path === '/mrd') {
+      try {
         const mr = await api.getMedicalRecords();
         setMedRecords(mr);
-      }
+      } catch (e) { console.error('Error loading mrd', e); }
+    }
 
-      // Load CRM
-      if (path === '/crm') {
+    // 11. CRM
+    if (path === '/crm') {
+      try {
         const crm = await api.getCRMEntries();
         setCrmEntries(crm);
-      }
+      } catch (e) { console.error('Error loading crm', e); }
+    }
 
-      // Load Compliance
-      if (path === '/compliance') {
+    // 12. Compliance
+    if (path === '/compliance') {
+      try {
         const cmp = await api.getComplianceItems();
         setComplianceItems(cmp);
-      }
-
-    } catch (e) {
-      console.error(e);
+      } catch (e) { console.error('Error loading compliance', e); }
     }
   };
 

@@ -645,13 +645,12 @@ const VirtualStockRoom: React.FC<VirtualStockRoomProps> = ({ drugs, onSelectLoca
                 }} />
               )}
 
-              {/* RACK LEFT SIDE (10 LINES x 10 BOXES = 100 BOXES) */}
               <div style={{
                 transformStyle: 'preserve-3d',
                 position: 'absolute',
                 transform: animationMode === 'Low'
                   ? 'translateX(-190px)'
-                  : 'rotateY(75deg) translate3d(-180px, -20px, -60px)',
+                  : 'rotateY(20deg) translate3d(-175px, -20px, 0px)',
                 background: 'rgba(15, 23, 42, 0.95)',
                 borderLeft: '4px solid #475569',
                 borderRight: '4px solid #475569',
@@ -717,13 +716,12 @@ const VirtualStockRoom: React.FC<VirtualStockRoomProps> = ({ drugs, onSelectLoca
                 </div>
               </div>
 
-              {/* RACK RIGHT SIDE (10 LINES x 10 BOXES = 100 BOXES) */}
               <div style={{
                 transformStyle: 'preserve-3d',
                 position: 'absolute',
                 transform: animationMode === 'Low'
                   ? 'translateX(190px)'
-                  : 'rotateY(-75deg) translate3d(180px, -20px, -60px)',
+                  : 'rotateY(-20deg) translate3d(175px, -20px, 0px)',
                 background: 'rgba(15, 23, 42, 0.95)',
                 borderLeft: '4px solid #475569',
                 borderRight: '4px solid #475569',
