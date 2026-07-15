@@ -306,7 +306,10 @@ const FinancialTransactionSchema = new mongoose.Schema({
   amount: { type: Number, required: true },
   status: { type: String, default: 'Settled', enum: ['Settled', 'Pending'] }, // Settled (Completed) vs Pending (Receivable/Payable)
   dueDate: String,
-  referenceId: String
+  referenceId: String,
+  partyName: { type: String, default: 'General' },
+  paymentMethod: { type: String, default: 'Cash' },
+  bankAccount: { type: String, default: 'Cash Drawer' }
 });
 
 export const FinancialTransaction = mongoose.model('FinancialTransaction', FinancialTransactionSchema);

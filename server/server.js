@@ -13,9 +13,11 @@ app.use(express.json());
 // API router mount
 app.use('/api', router);
 
+import { enableMongooseFallback, seedLocalDatabaseIfEmpty } from './mongoose-fallback.js';
+
 // Default status probe
 app.get('/', (req, res) => {
-  res.json({ status: 'MediCore HMS Database Server Online', database: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected' });
+  res.json({ status: 'MediCore HMS Database Server Online', database: mongoose.connection.readyState === 1 ? 'Connected' : 'Offline Fallback' });
 });
 
 console.log('Connecting to MongoDB Atlas Cluster...');
@@ -27,6 +29,10 @@ mongoose.connect(MONGODB_URI)
     });
   })
   .catch(err => {
-    console.error('MongoDB database connection failure:', err);
-    process.exit(1);
+    console.warn('MongoDB database connection failure. Activating offline JSON database.');
+    enableMongooseFallback(mongoose);
+    seedLocalDatabaseIfEmpty();
+    app.listen(PORT, () => {
+      console.log(`MediCore HMS Express server listening on port ${PORT} (Offline JSON Mode)`);
+    });
   });
